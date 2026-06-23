@@ -4,7 +4,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import prisma from "./config/prisma";
 import workerRoutes from "./routes/workerRoutes";
-
+import clientRoute from "./routes/clientRoutes"
 dotenv.config();
 
 const app = express();
@@ -17,7 +17,7 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/workers", workerRoutes);
-
+app.use("/api/clients", clientRoute);
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", timestamp: new Date() });
@@ -30,7 +30,9 @@ async function startServer() {
     console.log("Connecting to Supabase PostgreSQL database...");
     try {
       await prisma.$connect();
-      console.log("Database connection established successfully via Prisma Client.");
+      console.log(
+        "Database connection established successfully via Prisma Client.",
+      );
     } catch (e) {
       console.log("there is error in the connecting the db", e);
     }
