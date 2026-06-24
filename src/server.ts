@@ -4,7 +4,8 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import prisma from "./config/prisma";
 import workerRoutes from "./routes/workerRoutes";
-import clientRoute from "./routes/customerRoutes"
+import clientRoute from "./routes/customerRoutes";
+import { setupSwagger } from "./config/swagger";
 dotenv.config();
 
 const app = express();
@@ -18,6 +19,10 @@ app.use(morgan("dev"));
 // Routes
 app.use("/api/workers", workerRoutes);
 app.use("/api/clients", clientRoute);
+
+// Setup Swagger UI
+setupSwagger(app);
+
 // Health check endpoint
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", timestamp: new Date() });

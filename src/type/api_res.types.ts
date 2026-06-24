@@ -1,53 +1,22 @@
-export interface Worker {
-  id: string;
-  name?: string;
-  phone?: string;
-  profile_picture_url?: string;
-  aadhaar_last4?: string;
-  verification_status?: string;
-  worker_score?: number;
-  worker_rating?: number;
-  total_jobs_completed?: number;
-  years_of_experience?: number;
-  is_online?: boolean;
-  last_seen?: Date;
-  device_id?: string;
-  device_token?: string;
-  ip_address?: string;
-  decline_count?: number;
-  timeout_count?: number;
-  skill_category_id?: string;
-}
+import { z } from "zod";
+import {
+  CustomerSchema,
+  WorkerSchema,
+  SkillCategorySchema,
+  JobSchema,
+  BookingSchema,
+  PaymentSchema,
+  ReviewSchema
+} from "../schemas";
 
-export interface Customer {
-  id: string;
-  name?: string | undefined;
-  phone?: string;
-  email?: string;
-  city?: string;
-  created_at?: Date;
-}
-export interface SkillCategory {
-  id: string;
-  name?: string;
-  icon_url?: string;
-}
+export type Customer = z.infer<typeof CustomerSchema>;
+export type Worker = z.infer<typeof WorkerSchema>;
+export type SkillCategory = z.infer<typeof SkillCategorySchema>;
+export type Job = z.infer<typeof JobSchema>;
+export type Booking = z.infer<typeof BookingSchema>;
+export type Payment = z.infer<typeof PaymentSchema>;
+export type Review = z.infer<typeof ReviewSchema>;
 
-export interface Job {
-  id: string;
-  customer_id?: string;
-  category_id?: string;
-  description?: string;
-  latitude?: number;
-  longitude?: number;
-  location?: string;
-  budget?: number;
-  status?: string;
-  dispatch_status?: string;
-  current_dispatch_rank?: number;
-  created_at?: Date;
-  deleted_at?: Date;
-}
 export interface JobApplication {
   id: string;
   job_id?: string;
@@ -65,33 +34,6 @@ export interface JobDispatch {
   notified_at?: Date;
   responded_at?: Date;
   expires_at?: Date;
-}
-export interface Booking {
-  id: string;
-  job_id?: string;
-  worker_id?: string;
-  customer_id?: string;
-  start_time?: Date;
-  status?: string;
-  otp_hash?: string;
-  otp_verified?: boolean;
-}
-export interface Payment {
-  id: string;
-  booking_id?: string;
-  amount?: number;
-  status?: string;
-  razorpay_order_id?: string;
-  created_at?: Date;
-}
-export interface Review {
-  id: string;
-  booking_id?: string;
-  worker_id?: string;
-  customer_id?: string;
-  rating?: number;
-  comment?: string;
-  created_at?: Date;
 }
 export interface Conversation {
   id: string;
@@ -146,8 +88,6 @@ export interface WorkerLocation {
   location?: string;
   updated_at?: Date;
 }
-
-
 
 export interface CreateJobDto {
   customer_id: string;

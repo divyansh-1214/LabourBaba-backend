@@ -1,86 +1,31 @@
-export interface CreateWorkerReq {
-  name: string;
-  phone: string;
-  profile_picture_url?: string;
-  aadhaar_last4?: string;
-  skill_category_id: string;
-  years_of_experience?: number;
-  device_id?: string;
-  device_token?: string;
-}
-// Create Customer
-export interface CreateCustomerReq {
-  name: string;
-  phone: string;
-  email?: string;
-  city?: string;
-}
-// Create Job
-export interface CreateJobReq {
-  customer_id: string;
-  category_id: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  location: string;
-  budget: number;
-}
-// Apply Job
-export interface ApplyJobReq {
-  job_id: string;
-  worker_id: string;
-}
-// Dispatch Job
-export interface DispatchJobReq {
-  job_id: string;
-  worker_id: string;
-  rank: number;
-}
-// Create Booking
-export interface CreateBookingReq {
-  job_id: string;
-  worker_id: string;
-  customer_id: string;
-}
-// Verify OTP
-export interface VerifyOtpReq {
-  booking_id: string;
-  otp: string;
-}
-// Create Payment
-export interface CreatePaymentReq {
-  booking_id: string;
-  amount: number;
-}
-// Create Review
-export interface CreateReviewReq {
-  booking_id: string;
-  worker_id: string;
-  customer_id: string;
-  rating: number;
-  comment?: string;
-}
-// Send Message
-export interface SendMessageReq {
-  conversation_id: string;
-  sender_id: string;
-  content: string;
-}
-// Update Worker Location
-export interface UpdateWorkerLocationReq {
-  worker_id: string;
-  latitude: number;
-  longitude: number;
-  location: string;
-}
-// Upload Worker Document
-export interface UploadWorkerDocumentReq {
-  worker_id: string;
-  document_type: "AADHAAR" | "PAN" | "SELFIE";
-  file_url: string;
-}
-// Recommended Enums
-// Instead of plain strings:
+import { z } from "zod";
+import {
+  CreateWorkerReqSchema,
+  CreateCustomerReqSchema,
+  CreateJobReqSchema,
+  ApplyJobReqSchema,
+  DispatchJobReqSchema,
+  CreateBookingReqSchema,
+  VerifyOtpReqSchema,
+  CreatePaymentReqSchema,
+  CreateReviewReqSchema,
+  SendMessageReqSchema,
+  UpdateWorkerLocationReqSchema,
+  UploadWorkerDocumentReqSchema
+} from "../schemas";
+
+export type CreateWorkerReq = z.infer<typeof CreateWorkerReqSchema>;
+export type CreateCustomerReq = z.infer<typeof CreateCustomerReqSchema>;
+export type CreateJobReq = z.infer<typeof CreateJobReqSchema>;
+export type ApplyJobReq = z.infer<typeof ApplyJobReqSchema>;
+export type DispatchJobReq = z.infer<typeof DispatchJobReqSchema>;
+export type CreateBookingReq = z.infer<typeof CreateBookingReqSchema>;
+export type VerifyOtpReq = z.infer<typeof VerifyOtpReqSchema>;
+export type CreatePaymentReq = z.infer<typeof CreatePaymentReqSchema>;
+export type CreateReviewReq = z.infer<typeof CreateReviewReqSchema>;
+export type SendMessageReq = z.infer<typeof SendMessageReqSchema>;
+export type UpdateWorkerLocationReq = z.infer<typeof UpdateWorkerLocationReqSchema>;
+export type UploadWorkerDocumentReq = z.infer<typeof UploadWorkerDocumentReqSchema>;
 
 export enum JobStatus {
   OPEN = "OPEN",
