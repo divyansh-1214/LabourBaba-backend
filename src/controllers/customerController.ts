@@ -5,7 +5,7 @@ export const getClient = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const clients = await prisma.client.findMany();
+    const clients = await prisma.customer.findMany();
 
     res.status(200).json({
       success: true,

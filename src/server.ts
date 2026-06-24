@@ -4,7 +4,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import prisma from "./config/prisma";
 import workerRoutes from "./routes/workerRoutes";
-import clientRoute from "./routes/clientRoutes"
+import clientRoute from "./routes/customerRoutes"
 dotenv.config();
 
 const app = express();
