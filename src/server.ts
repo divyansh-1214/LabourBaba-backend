@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import prisma from "./config/prisma";
 import workerRoutes from "./routes/workerRoutes";
 import clientRoute from "./routes/customerRoutes";
+import skillRoute from "./routes/skillRouter"
 import { setupSwagger } from "./config/swagger";
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(morgan("dev"));
 // Routes
 app.use("/api/workers", workerRoutes);
 app.use("/api/clients", clientRoute);
+app.use("/api/skill", skillRoute);
 
 // Setup Swagger UI
 setupSwagger(app);

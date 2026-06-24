@@ -30,7 +30,6 @@ export const postClient = async (req: Request, res: Response): Promise<void> => 
     const customer = await customerService(
       payload
     );
-
     res.status(201).json({
       success: true,
       data: customer,
