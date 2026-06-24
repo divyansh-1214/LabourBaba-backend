@@ -7,7 +7,7 @@ datasource db {
 }
 
 model Worker {
-  id                   String             @id @db.Uuid
+  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                 String?            @db.VarChar
   phone                String?            @unique @db.VarChar
   profile_picture_url  String?            @db.VarChar
@@ -41,7 +41,7 @@ model Worker {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model booking {
-  id           String         @id @db.Uuid
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   job_id       String?        @db.Uuid
   worker_id    String?        @db.Uuid
   customer_id  String?        @db.Uuid
@@ -59,7 +59,7 @@ model booking {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model job {
-  id                    String            @id @db.Uuid
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   customer_id           String?           @db.Uuid
   category_id           String?           @db.Uuid
   description           String?
@@ -81,7 +81,7 @@ model job {
 }
 
 model payment {
-  id                String    @id @db.Uuid
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   booking_id        String?   @db.Uuid
   amount            Int?
   status            String?   @db.VarChar
@@ -91,7 +91,7 @@ model payment {
 }
 
 model review {
-  id          String    @id @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   booking_id  String?   @db.Uuid
   worker_id   String?   @db.Uuid
   customer_id String?   @db.Uuid
@@ -105,7 +105,7 @@ model review {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model conversation {
-  id          String    @id @db.Uuid
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   booking_id  String?   @db.Uuid
   worker_id   String?   @db.Uuid
   customer_id String?   @db.Uuid
@@ -115,7 +115,7 @@ model conversation {
 }
 
 model customer {
-  id         String    @id @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name       String?   @db.VarChar
   phone      String?   @unique @db.VarChar
   email      String?   @db.VarChar
@@ -128,7 +128,7 @@ model customer {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model job_application {
-  id                String  @id @db.Uuid
+  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   job_id            String? @db.Uuid
   worker_id         String? @db.Uuid
   status            String? @db.VarChar
@@ -140,7 +140,7 @@ model job_application {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model job_dispatch {
-  id           String    @id @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   job_id       String?   @db.Uuid
   worker_id    String?   @db.Uuid
   rank         Int?
@@ -154,7 +154,7 @@ model job_dispatch {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model message {
-  id              String        @id @db.Uuid
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   conversation_id String?       @db.Uuid
   sender_id       String?       @db.Uuid
   content         String?
@@ -164,7 +164,7 @@ model message {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model notification {
-  id         String    @id @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   worker_id  String?   @db.Uuid
   job_id     String?   @db.Uuid
   type       String?   @db.VarChar
@@ -175,7 +175,7 @@ model notification {
 }
 
 model skill_category {
-  id       String   @id @db.Uuid
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name     String?  @db.VarChar
   icon_url String?  @db.VarChar
   job      job[]
@@ -184,7 +184,7 @@ model skill_category {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_analytics {
-  id                  String    @id @db.Uuid
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   worker_id           String?   @db.Uuid
   avg_response_time_s Float?
   acceptance_rate     Float?
@@ -195,7 +195,7 @@ model worker_analytics {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_device {
-  id         String    @id @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   worker_id  String?   @db.Uuid
   device_id  String?   @db.VarChar
   ip_address String?   @db.VarChar
@@ -206,7 +206,7 @@ model worker_device {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_document {
-  id            String  @id @db.Uuid
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   worker_id     String? @db.Uuid
   document_type String? @db.VarChar
   file_url      String? @db.VarChar
@@ -216,7 +216,7 @@ model worker_document {
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_location {
-  id         String    @id @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   worker_id  String?   @db.Uuid
   latitude   Float?
   longitude  Float?
