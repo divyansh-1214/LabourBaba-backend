@@ -25,6 +25,7 @@ model Worker {
   decline_count        Int?
   timeout_count        Int?
   skill_category_id    String?            @db.Uuid
+  password             String             @db.VarChar(255)
   booking              booking[]
   job_application      job_application[]
   job_dispatch         job_dispatch[]
@@ -121,6 +122,7 @@ model customer {
   email      String?   @db.VarChar
   city       String?   @db.VarChar
   created_at DateTime? @db.Timestamp(6)
+  password   String    @db.VarChar(255)
   booking    booking[]
   job        job[]
   review     review[]

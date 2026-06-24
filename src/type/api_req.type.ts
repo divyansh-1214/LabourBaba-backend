@@ -11,7 +11,9 @@ import {
   CreateReviewReqSchema,
   SendMessageReqSchema,
   UpdateWorkerLocationReqSchema,
-  UploadWorkerDocumentReqSchema
+  UploadWorkerDocumentReqSchema,
+  SignupCustomerReqSchema,
+  LoginCustomerReqSchema
 } from "../schemas";
 
 export type CreateWorkerReq = z.infer<typeof CreateWorkerReqSchema>;
@@ -26,6 +28,8 @@ export type CreateReviewReq = z.infer<typeof CreateReviewReqSchema>;
 export type SendMessageReq = z.infer<typeof SendMessageReqSchema>;
 export type UpdateWorkerLocationReq = z.infer<typeof UpdateWorkerLocationReqSchema>;
 export type UploadWorkerDocumentReq = z.infer<typeof UploadWorkerDocumentReqSchema>;
+export type SignupCustomerReq = z.infer<typeof SignupCustomerReqSchema>;
+export type LoginCustomerReq = z.infer<typeof LoginCustomerReqSchema>;
 
 export enum JobStatus {
   OPEN = "OPEN",

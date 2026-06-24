@@ -34,6 +34,7 @@ export const CustomerSchema = z.object({
   phone: z.string().nullable().optional().openapi({ example: "+919876543210" }),
   email: z.string().email().nullable().optional().openapi({ example: "john@example.com" }),
   city: z.string().nullable().optional().openapi({ example: "Mumbai" }),
+  password: z.string().min(6, "password shoude be of 6 characters").openapi({ example: "XXXXXXXXX" }),
   created_at: z.date().nullable().optional().openapi({ example: "2026-06-25T00:00:00Z" }),
 }).openapi("Customer");
 
@@ -56,6 +57,7 @@ export const WorkerSchema = z.object({
   decline_count: z.number().int().nullable().optional(),
   timeout_count: z.number().int().nullable().optional(),
   skill_category_id: z.string().uuid().nullable().optional(),
+  password: z.string().min(6, "password shoude be of 6 characters").openapi({ example: "XXXXXXXXX" }),
 }).openapi("Worker");
 
 export const SkillCategorySchema = z.object({
@@ -115,6 +117,7 @@ export const ReviewSchema = z.object({
 export const CreateCustomerReqSchema = z.object({
   name: z.string().min(1, "Name is required").openapi({ example: "John Doe" }),
   phone: z.string().min(10, "Phone number must be at least 10 digits").openapi({ example: "+919876543210" }),
+  password: z.string().min(6, "password shoude be of 6 characters").openapi({ example: "XXXXXXXXX" }),
   email: z.string().email("Invalid email address").optional().openapi({ example: "john@example.com" }),
   city: z.string().optional().openapi({ example: "Mumbai" }),
 }).openapi("CreateCustomerReq");
@@ -193,3 +196,16 @@ export const UploadWorkerDocumentReqSchema = z.object({
   document_type: DocumentTypeSchema,
   file_url: z.string().url("Invalid file URL"),
 }).openapi("UploadWorkerDocumentReq");
+
+export const SignupCustomerReqSchema = z.object({
+  name: z.string().min(1, "Name is required").openapi({ example: "John Doe" }),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").openapi({ example: "+919876543210" }),
+  password: z.string().min(6, "Password must be at least 6 characters").openapi({ example: "mysecurepassword" }),
+  email: z.string().email("Invalid email address").optional().openapi({ example: "john@example.com" }),
+  city: z.string().optional().openapi({ example: "Mumbai" }),
+}).openapi("SignupCustomerReq");
+
+export const LoginCustomerReqSchema = z.object({
+  phone: z.string().min(10, "Phone number must be at least 10 digits").openapi({ example: "+919876543210" }),
+  password: z.string().min(1, "Password is required").openapi({ example: "mysecurepassword" }),
+}).openapi("LoginCustomerReq");
