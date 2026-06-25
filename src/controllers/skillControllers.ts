@@ -34,7 +34,7 @@ export const addSkills = async (
     })
   }
   catch (e: any) {
-    console.log(e.message)
+    console.log(e)
     res.status(500).json({
       success: false,
       message: e?.message || "An error occurred",

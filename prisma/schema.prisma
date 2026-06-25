@@ -26,6 +26,8 @@ model Worker {
   timeout_count        Int?
   skill_category_id    String?            @db.Uuid
   password             String             @db.VarChar(255)
+  email                String             @unique(map: "worker_email_unique") @db.VarChar(255)
+  city                 String?            @db.VarChar(255)
   booking              booking[]
   job_application      job_application[]
   job_dispatch         job_dispatch[]

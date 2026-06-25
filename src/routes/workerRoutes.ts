@@ -1,5 +1,5 @@
 import express from "express";
-import { getWorkers } from "../controllers/workerController";
+import { getWorkers, addWorker } from "../controllers/workerController";
 import { WorkerSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
@@ -31,5 +31,6 @@ registry.registerPath({
 });
 
 router.get("/", getWorkers);
+router.post("/add", addWorker)
 
 export default router;

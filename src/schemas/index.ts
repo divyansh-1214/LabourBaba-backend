@@ -66,6 +66,11 @@ export const SkillCategorySchema = z.object({
   icon_url: z.string().url().nullable().optional().openapi({ example: "https://example.com/icons/plumber.png" }),
 }).openapi("SkillCategory");
 
+export const SkillCategorySchemaReqSchema = z.object({
+  name: z.string().nullable().optional().openapi({ example: "Plumbing" }),
+  icon_url: z.string().url().nullable().optional().openapi({ example: "https://example.com/icons/plumber.png" }),
+}).openapi("SkillCategory");
+
 export const JobSchema = z.object({
   id: z.string().uuid(),
   customer_id: z.string().uuid().nullable().optional(),
