@@ -56,7 +56,7 @@ export const WorkerSchema = z.object({
   ip_address: z.string().nullable().optional(),
   decline_count: z.number().int().nullable().optional(),
   timeout_count: z.number().int().nullable().optional(),
-  skill_category_id: z.string().uuid().nullable().optional(),
+  skill_category_id: z.string().uuid(),
   password: z.string().min(6, "password shoude be of 6 characters").openapi({ example: "XXXXXXXXX" }),
 }).openapi("Worker");
 
@@ -73,11 +73,11 @@ export const SkillCategorySchemaReqSchema = z.object({
 
 export const JobSchema = z.object({
   id: z.string().uuid(),
-  customer_id: z.string().uuid().nullable().optional(),
-  category_id: z.string().uuid().nullable().optional(),
+  customer_id: z.string().uuid(),
+  category_id: z.string().uuid(),
   description: z.string().nullable().optional(),
-  latitude: z.number().nullable().optional(),
-  longitude: z.number().nullable().optional(),
+  latitude: z.number(),
+  longitude: z.number(),
   location: z.string().nullable().optional(),
   budget: z.number().int().nullable().optional(),
   status: z.string().nullable().optional(),

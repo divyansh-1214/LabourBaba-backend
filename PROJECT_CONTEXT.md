@@ -20,6 +20,7 @@ The project has the following directory layout under the source root (`src/`):
   - **`controllers/`**
     - `customerAuthController.ts`: Handles customer sign-up/login authentication.
     - `customerController.ts`: Handles requests related to customers (e.g., retrieving customer list, adding a customer).
+    - `jobController.ts`: Handles retrieving and creating jobs.
     - `skillControllers.ts`: Handles retrieving and adding skill categories.
     - `workerController.ts`: Handles retrieving and adding workers.
   - **`middlewares/`**
@@ -30,6 +31,7 @@ The project has the following directory layout under the source root (`src/`):
     - `skillRouter.ts`: Defines endpoint mappings under `/api/skill` (list and create).
     - `workerRoutes.ts`: Defines endpoint mappings under `/api/workers` (list, create, and locate).
     - `worker_location.routes.ts`: Defines endpoint mappings under `/api/worker_location` (add/update location).
+    - `jobRoutes.ts`: Defines endpoint mappings under `/api/jobs` (list and create).
   - **`schemas/`**
     - `index.ts`: Contains Zod validation schemas for requests and responses, registered to the Swagger/OpenAPI registry.
   - **`services/`**
@@ -260,7 +262,10 @@ Real-time or last known coordinates of a worker.
     *   **POST** `/api/skill/add`
 5.  **Worker Location**
     *   **POST** `/api/worker_location/add`
-6.  **API Documentation**
+6.  **Jobs**
+    *   **GET** `/api/jobs`
+    *   **POST** `/api/jobs/add`
+7.  **API Documentation**
     *   **GET** `/api-docs` (Swagger UI HTML)
 
 ---

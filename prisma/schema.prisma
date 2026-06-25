@@ -24,7 +24,7 @@ model Worker {
   ip_address           String?            @db.VarChar
   decline_count        Int?
   timeout_count        Int?
-  skill_category_id    String?            @db.Uuid
+  skill_category_id    String             @db.Uuid
   password             String             @db.VarChar(255)
   email                String             @unique(map: "worker_email_unique") @db.VarChar(255)
   city                 String?            @db.VarChar(255)
@@ -33,7 +33,7 @@ model Worker {
   job_dispatch         job_dispatch[]
   notification         notification[]
   review               review[]
-  skill_category       skill_category?    @relation(fields: [skill_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  skill_category       skill_category     @relation(fields: [skill_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   worker_analytics     worker_analytics[]
   worker_device        worker_device[]
   worker_document      worker_document[]
@@ -63,11 +63,11 @@ model booking {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model job {
   id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  customer_id           String?           @db.Uuid
-  category_id           String?           @db.Uuid
+  customer_id           String            @db.Uuid
+  category_id           String            @db.Uuid
   description           String?
-  latitude              Float?
-  longitude             Float?
+  latitude              Float
+  longitude             Float
   location              String?
   budget                Int?
   status                String?           @db.VarChar
@@ -76,8 +76,8 @@ model job {
   created_at            DateTime?         @db.Timestamp(6)
   deleted_at            DateTime?         @db.Timestamp(6)
   booking               booking[]
-  category              skill_category?   @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_category")
-  customer              customer?         @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  category              skill_category    @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_category")
+  customer              customer          @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   job_application       job_application[]
   job_dispatch          job_dispatch[]
   notification          notification[]
