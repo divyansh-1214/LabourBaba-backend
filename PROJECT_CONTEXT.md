@@ -16,16 +16,30 @@ The project has the following directory layout under the source root (`src/`):
 - **`src/`**
   - **`config/`**
     - `prisma.ts`: Configures the connection pooling (`pg.Pool`) and initializes `PrismaClient` with the PostgreSQL adapter (`@prisma/adapter-pg`).
+    - `swagger.ts`: Configures and exports Swagger (OpenAPI) setup helper using `@asteasolutions/zod-to-openapi` and `swagger-ui-express`.
   - **`controllers/`**
-    - `clientController.ts`: Handles requests related to clients (e.g., retrieving client lists).
-    - `workerController.ts`: Handles requests related to workers (e.g., retrieving worker profiles).
+    - `customerAuthController.ts`: Handles customer sign-up/login authentication.
+    - `customerController.ts`: Handles requests related to customers (e.g., retrieving customer list, adding a customer).
+    - `skillControllers.ts`: Handles retrieving and adding skill categories.
+    - `workerController.ts`: Handles retrieving and adding workers.
+  - **`middlewares/`**
+    - `authMiddleware.ts`: Custom middleware for verifying JWT tokens.
+    - `validationMiddleware.ts`: Custom middleware using Zod schema to validate request bodies.
   - **`routes/`**
-    - `clientRoutes.ts`: Defines endpoint mappings under `/api/clients`.
-    - `workerRoutes.ts`: Defines endpoint mappings under `/api/workers`.
-  - **`middlewares/`**: (Placeholder/Empty directory for custom Express middleware functions).
-  - **`services/`**: (Placeholder/Empty directory for business logic layer abstraction).
-  - **`utils/`**: (Placeholder/Empty directory for utility helper functions).
-  - `server.ts`: Entry point of the Express server. Configures standard middleware (`cors`, `morgan`, `express.json`), registers routes, verifies the database connection on start, and listens on the configured port.
+    - `customerRoutes.ts`: Defines endpoint mappings under `/api/clients` (includes signup, login, list, and create).
+    - `skillRouter.ts`: Defines endpoint mappings under `/api/skill` (list and create).
+    - `workerRoutes.ts`: Defines endpoint mappings under `/api/workers` (list, create, and locate).
+    - `worker_location.routes.ts`: Defines endpoint mappings under `/api/worker_location` (add/update location).
+  - **`schemas/`**
+    - `index.ts`: Contains Zod validation schemas for requests and responses, registered to the Swagger/OpenAPI registry.
+  - **`services/`**
+    - `customerServices.ts`: Abstracted business logic layer for customer actions.
+  - **`type/`**
+    - `api_req.type.ts`: Defines TypeScript interfaces/types for request payloads.
+    - `api_res.types.ts`: Defines TypeScript interfaces/types for API responses.
+  - **`utils/`**
+    - `authUtils.ts`: Helper utilities for authentication (e.g., password hashing, token verification/signing).
+  - `server.ts`: Entry point of the Express server. Configures standard middleware (`cors`, `morgan`, `express.json`), registers routes, configures Swagger UI, verifies the database connection on start, and listens on the configured port.
   - `test-prisma.ts`: A small testing script to verify Prisma integration and connectivity.
 - **`prisma/`**
   - `schema.prisma`: The database design schema definition file.
@@ -40,101 +54,169 @@ The database consists of a PostgreSQL relational database. Key models and relati
 
 #### `Worker` (`worker`)
 Represents the service providers (workers) on the platform.
-*   `worker_id`: Integer, Primary Key (auto-incrementing)
-*   `name`: String (VarChar 100)
-*   `ph_number`: String (unique VarChar 15)
-*   `aadhaar_last4`: String (Char 4, optional)
-*   `location`: String (VarChar 200, optional)
-*   `latitude`: Decimal (optional)
-*   `longitude`: Decimal (optional)
-*   `skill`: String (VarChar 100, optional)
-*   `rating`: Decimal (default: 0.0)
-*   `daily_rate`: Decimal (optional)
-*   `is_verified`: Boolean (default: false)
-*   `created_at`: DateTime (default: now)
+*   `id`: UUID, Primary Key
+*   `name`: String (VarChar, optional)
+*   `phone`: String (unique VarChar, optional)
+*   `profile_picture_url`: String (VarChar, optional)
+*   `aadhaar_last4`: String (VarChar, optional)
+*   `verification_status`: String (VarChar, optional)
+*   `worker_score`: Float (optional)
+*   `worker_rating`: Float (optional)
+*   `total_jobs_completed`: Int (optional)
+*   `years_of_experience`: Int (optional)
+*   `is_online`: Boolean (optional)
+*   `last_seen`: DateTime (optional)
+*   `device_id`: String (VarChar, optional)
+*   `device_token`: String (VarChar, optional)
+*   `ip_address`: String (VarChar, optional)
+*   `decline_count`: Int (optional)
+*   `timeout_count`: Int (optional)
+*   `skill_category_id`: UUID (foreign key referencing `skill_category`, optional)
+*   `password`: String (VarChar 255)
+*   `email`: String (unique VarChar 255)
+*   `city`: String (VarChar 255, optional)
 
-#### `client` (`client`)
-Represents customers/clients who post jobs and book workers.
-*   `client_id`: Integer, Primary Key (auto-incrementing)
-*   `name`: String (VarChar 100)
-*   `ph_number`: String (unique VarChar 15)
-*   `aadhaar_last4`: String (unique VarChar 16)
-*   `address`: String (VarChar 100, optional)
-*   `city`: String (VarChar 100, optional)
-*   `state`: String (VarChar 100, optional)
-*   `pincode`: String (VarChar 6, optional)
-*   `is_verified`: Boolean (default: false)
-*   `created_at`: DateTime (default: now)
+#### `customer` (`customer`)
+Represents clients/customers who post jobs and book workers.
+*   `id`: UUID, Primary Key
+*   `name`: String (VarChar, optional)
+*   `phone`: String (unique VarChar, optional)
+*   `email`: String (VarChar, optional)
+*   `city`: String (VarChar, optional)
+*   `password`: String (VarChar 255)
+*   `created_at`: DateTime (optional)
 
 #### `booking`
-Tracks job allocations and hiring status.
-*   `booking_id`: Integer, Primary Key (auto-incrementing)
-*   `job_id`: Integer (foreign key referencing `job`)
-*   `worker_id`: Integer (foreign key referencing `Worker`)
-*   `client_id`: Integer (foreign key referencing `client`)
-*   `status`: enum `booking_status` (values: `pending`, `accepted`, `completed`, `cancelled`)
-*   `booked_at`: DateTime (default: now)
-*   `completed_at`: DateTime (optional)
-
-#### `category`
-Provides categorization for jobs (e.g., Plumbing, Electrician, Construction).
-*   `category_id`: Integer, Primary Key (auto-incrementing)
-*   `name`: String (unique VarChar 100)
-*   `icon`: String (VarChar 100, optional)
+Tracks job allocations and hiring status between customers and workers.
+*   `id`: UUID, Primary Key
+*   `job_id`: UUID (foreign key referencing `job`, optional)
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `customer_id`: UUID (foreign key referencing `customer`, optional)
+*   `start_time`: DateTime (optional)
+*   `status`: String (VarChar, optional)
+*   `otp_hash`: String (VarChar, optional)
+*   `otp_verified`: Boolean (optional)
 
 #### `job`
-Represents service tasks posted by clients.
-*   `job_id`: Integer, Primary Key (auto-incrementing)
-*   `posted_by`: Integer (foreign key referencing `client`)
-*   `category_id`: Integer (foreign key referencing `category`, optional)
-*   `type`: String (VarChar 100)
+Represents service tasks posted by customers.
+*   `id`: UUID, Primary Key
+*   `customer_id`: UUID (foreign key referencing `customer`, optional)
+*   `category_id`: UUID (foreign key referencing `skill_category`, optional)
 *   `description`: String (optional)
-*   `max_budget`: Decimal (optional)
-*   `status`: String (default: "open")
-*   `created_at`: DateTime (default: now)
+*   `latitude`: Float (optional)
+*   `longitude`: Float (optional)
+*   `location`: String (optional)
+*   `budget`: Int (optional)
+*   `status`: String (VarChar, optional)
+*   `dispatch_status`: String (VarChar, optional)
+*   `current_dispatch_rank`: Int (optional)
+*   `created_at`: DateTime (optional)
+*   `deleted_at`: DateTime (optional)
 
 #### `payment`
 Handles financial records associated with bookings.
-*   `payment_id`: Integer, Primary Key (auto-incrementing)
-*   `booking_id`: Integer (unique foreign key referencing `booking`)
-*   `amount`: Decimal
-*   `platform_fee`: Decimal (default: 0)
-*   `method`: String (VarChar 50, optional)
-*   `txn_id`: String (unique VarChar 200, optional)
-*   `status`: String (default: "pending")
-*   `paid_at`: DateTime (optional)
-
-#### `prev_work`
-Stores historical projects/portfolio work of a worker.
-*   `prev_work_id`: Integer, Primary Key (auto-incrementing)
-*   `worker_id`: Integer (foreign key referencing `Worker`)
-*   `title`: String (VarChar 200, optional)
-*   `description`: String (optional)
-*   `image_url`: String (optional)
-*   `date_completed`: Date (optional)
+*   `id`: UUID, Primary Key
+*   `booking_id`: UUID (foreign key referencing `booking`, optional)
+*   `amount`: Int (optional)
+*   `status`: String (VarChar, optional)
+*   `razorpay_order_id`: String (VarChar, optional)
+*   `created_at`: DateTime (optional)
 
 #### `review`
 Contains feedback from transactions.
-*   `review_id`: Integer, Primary Key (auto-incrementing)
-*   `booking_id`: Integer (foreign key referencing `booking`)
-*   `reviewer_id`: Integer
-*   `reviewee_id`: Integer
-*   `reviewer_type`: String (VarChar 10, optional)
-*   `rating`: SmallInt (optional)
+*   `id`: UUID, Primary Key
+*   `booking_id`: UUID (foreign key referencing `booking`, optional)
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `customer_id`: UUID (foreign key referencing `customer`, optional)
+*   `rating`: Float (optional)
 *   `comment`: String (optional)
-*   `created_at`: DateTime (default: now)
-*   *Unique constraint:* `[booking_id, reviewer_id]` (prevents multiple reviews for same booking by the same user)
+*   `created_at`: DateTime (optional)
 
-#### `skill`
-Lookup table of skills.
-*   `skill_id`: Integer, Primary Key (auto-incrementing)
-*   `skill_name`: String (unique VarChar 100)
+#### `conversation`
+Represents communication threads for a booking.
+*   `id`: UUID, Primary Key
+*   `booking_id`: UUID (foreign key referencing `booking`, optional)
+*   `worker_id`: UUID (optional)
+*   `customer_id`: UUID (optional)
+*   `created_at`: DateTime (optional)
 
-#### `worker_skill`
-Many-to-many junction table connecting `Worker` and `skill`.
-*   `worker_id`: Integer (foreign key referencing `Worker`)
-*   `skill_id`: Integer (foreign key referencing `skill`)
-*   *Composite Primary Key:* `[worker_id, skill_id]`
+#### `message`
+Messages sent within a conversation.
+*   `id`: UUID, Primary Key
+*   `conversation_id`: UUID (foreign key referencing `conversation`, optional)
+*   `sender_id`: UUID (optional)
+*   `content`: String (optional)
+*   `created_at`: DateTime (optional)
+
+#### `notification`
+In-app notifications for workers about jobs.
+*   `id`: UUID, Primary Key
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `job_id`: UUID (foreign key referencing `job`, optional)
+*   `type`: String (VarChar, optional)
+*   `is_read`: Boolean (optional)
+*   `created_at`: DateTime (optional)
+
+#### `skill_category`
+Categories for skills (e.g., Plumbing, Electrician).
+*   `id`: UUID, Primary Key
+*   `name`: String (VarChar, optional)
+*   `icon_url`: String (VarChar, optional)
+
+#### `job_application`
+Applications submitted by workers for specific jobs.
+*   `id`: UUID, Primary Key
+*   `job_id`: UUID (foreign key referencing `job`, optional)
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `status`: String (VarChar, optional)
+*   `distance_km`: Float (optional)
+*   `application_score`: Float (optional)
+
+#### `job_dispatch`
+Dispatched routing tracking for jobs matching workers.
+*   `id`: UUID, Primary Key
+*   `job_id`: UUID (foreign key referencing `job`, optional)
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `rank`: Int (optional)
+*   `status`: String (VarChar, optional)
+*   `notified_at`: DateTime (optional)
+*   `responded_at`: DateTime (optional)
+*   `expires_at`: DateTime (optional)
+
+#### `worker_analytics`
+Performance metrics for each worker.
+*   `id`: UUID, Primary Key
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `avg_response_time_s`: Float (optional)
+*   `acceptance_rate`: Float (optional)
+*   `completion_rate`: Float (optional)
+*   `calculated_at`: DateTime (optional)
+
+#### `worker_device`
+Devices registered to a worker.
+*   `id`: UUID, Primary Key
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `device_id`: String (VarChar, optional)
+*   `ip_address`: String (VarChar, optional)
+*   `first_seen`: DateTime (optional)
+*   `last_seen`: DateTime (optional)
+
+#### `worker_document`
+Documents uploaded by workers for verification.
+*   `id`: UUID, Primary Key
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `document_type`: String (VarChar, optional)
+*   `file_url`: String (VarChar, optional)
+*   `status`: String (VarChar, optional)
+
+#### `worker_location`
+Real-time or last known coordinates of a worker.
+*   `id`: UUID, Primary Key
+*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `latitude`: Float (optional)
+*   `longitude`: Float (optional)
+*   `location`: String (optional)
+*   `updated_at`: DateTime (optional)
 
 ---
 
@@ -150,6 +232,8 @@ Many-to-many junction table connecting `Worker` and `skill`.
     *   `@supabase/server` (v1.1.0) - Supabase server utility helper.
     *   `@supabase/supabase-js` (v2.108.2) - Supabase JS client.
     *   `jsonwebtoken` & `bcrypt` - User authentication and hashing utilities.
+    *   `zod` (v4.4.3) & `@asteasolutions/zod-to-openapi` (v8.5.0) - Input validation and OpenAPI documentation integration.
+    *   `swagger-ui-express` (v5.0.1) - Serve Swagger OpenAPI documentation.
 *   **Development Context:**
     *   `prisma` - Database schema compiler & migration manager.
     *   `tsx` - Executes TS files directly without separate pre-compilation step.
@@ -164,10 +248,20 @@ Many-to-many junction table connecting `Worker` and `skill`.
     *   **Response:** `{ "status": "OK", "timestamp": "..." }`
 2.  **Workers**
     *   **GET** `/api/workers`
-    *   **Response:** List of all workers in JSON format.
-3.  **Clients**
+    *   **POST** `/api/workers/add`
+    *   **POST** `/api/workers/locate`
+3.  **Clients / Customers**
     *   **GET** `/api/clients`
-    *   **Response:** List of all clients in JSON format.
+    *   **POST** `/api/clients/add`
+    *   **POST** `/api/clients/signup`
+    *   **POST** `/api/clients/login`
+4.  **Skills**
+    *   **GET** `/api/skill`
+    *   **POST** `/api/skill/add`
+5.  **Worker Location**
+    *   **POST** `/api/worker_location/add`
+6.  **API Documentation**
+    *   **GET** `/api-docs` (Swagger UI HTML)
 
 ---
 

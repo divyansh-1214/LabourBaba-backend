@@ -7,6 +7,7 @@ import workerRoutes from "./routes/workerRoutes";
 import clientRoute from "./routes/customerRoutes";
 import skillRoute from "./routes/skillRouter"
 import { setupSwagger } from "./config/swagger";
+import workerLocationRoute from "./routes/worker_location.routes";
 dotenv.config();
 
 const app = express();
@@ -18,9 +19,10 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 // Routes
-app.use("/api/workers", workerRoutes);
 app.use("/api/clients", clientRoute);
+app.use("/api/workers", workerRoutes);
 app.use("/api/skill", skillRoute);
+app.use("/api/worker_location", workerLocationRoute)
 
 // Setup Swagger UI
 setupSwagger(app);
@@ -43,7 +45,6 @@ async function startServer() {
     } catch (e) {
       console.log("there is error in the connecting the db", e);
     }
-
     app.listen(port, () => {
       console.log(`Server running on http://localhost:${port}`);
     });

@@ -196,6 +196,12 @@ export const UpdateWorkerLocationReqSchema = z.object({
   location: z.string().min(1, "Location description is required"),
 }).openapi("UpdateWorkerLocationReq");
 
+export const LocateWorkerReqSchema = z.object({
+  id: z.string().uuid("Invalid worker UUID").openapi({ example: "123e4567-e89b-12d3-a456-426614174000" }),
+  lon: z.number().openapi({ example: 72.8777 }),
+  lat: z.number().openapi({ example: 19.0760 }),
+}).openapi("LocateWorkerReq");
+
 export const UploadWorkerDocumentReqSchema = z.object({
   worker_id: z.string().uuid("Invalid worker UUID"),
   document_type: DocumentTypeSchema,

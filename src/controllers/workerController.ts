@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
 import { CreateCustomerReq } from "../type/api_req.type"
-export const getWorkers = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+import { redis } from "../config/redis"
+import { errors } from "@upstash/redis";
+export const getWorkers = async (req: Request, res: Response,): Promise<void> => {
   try {
     const workers = await prisma.worker.findMany();
     console.log(workers)
@@ -41,3 +40,21 @@ export const addWorker = async (req: Request, res: Response): Promise<void> => {
     });
   }
 };
+
+export const locate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id, lon, lat } = req.body;
+    const worker = prisma.worker.findFirst({ where: { id } })
+
+    console.log(worker);
+    res.status(200).json({
+      succes: "true",
+      data: worker
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    })
+  }
+}

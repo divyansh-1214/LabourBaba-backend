@@ -1,6 +1,7 @@
 import express from "express";
 import { getSkills, addSkills } from "../controllers/skillControllers"
 import { SkillCategorySchema, SkillCategorySchemaReqSchema } from "../schemas";
+import { validateBody } from "../middlewares/validationMiddleware";
 import { registry } from "../config/swagger";
 import { z } from "zod";
 
@@ -26,11 +27,11 @@ registry.registerPath({
     },
   },
 });
-// this add option is not wwoking
+// Register POST /api/skill/add
 registry.registerPath({
   method: "post",
-  path: "/api/clients/add",
-  summary: "Create a new customer/client",
+  path: "/api/skill/add",
+  summary: "Create a new skill category",
   tags: ["Skills"],
   request: {
     body: {
@@ -43,7 +44,7 @@ registry.registerPath({
   },
   responses: {
     201: {
-      description: "Customer created successfully",
+      description: "Skill category created successfully",
       content: {
         "application/json": {
           schema: z.object({
@@ -65,6 +66,6 @@ registry.registerPath({
 
 const skillRoute = express.Router();
 skillRoute.get("/", getSkills)
-skillRoute.post("/add", addSkills)
+skillRoute.post("/add", validateBody(SkillCategorySchemaReqSchema), addSkills)
 
 export default skillRoute
