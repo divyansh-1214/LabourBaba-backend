@@ -133,13 +133,13 @@ model customer {
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model job_application {
   id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  job_id            String? @db.Uuid
-  worker_id         String? @db.Uuid
+  job_id            String  @db.Uuid
+  worker_id         String  @db.Uuid
   status            String? @db.VarChar
-  distance_km       Float?
+  distance_km       Float
   application_score Float?
-  job               job?    @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  worker            Worker? @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  job               job     @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  worker            Worker  @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.

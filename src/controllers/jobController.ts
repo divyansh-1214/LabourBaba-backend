@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
 import { CreateJobReq } from "../type/api_req.type";
+import { makeJob } from "../services/job.services";
 
 export const getJobs = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -32,20 +33,7 @@ export const getJobs = async (req: Request, res: Response): Promise<void> => {
 export const createJob = async (req: Request, res: Response): Promise<void> => {
   try {
     const payload: CreateJobReq = req.body;
-    const job = await prisma.job.create({
-      data: {
-        customer_id: payload.customer_id,
-        category_id: payload.category_id,
-        description: payload.description,
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-        location: payload.location,
-        budget: payload.budget,
-        status: "OPEN", // Default initial status
-        dispatch_status: "PENDING",
-      },
-    });
-
+    const job = await makeJob(payload)
     res.status(201).json({
       success: true,
       data: job,
