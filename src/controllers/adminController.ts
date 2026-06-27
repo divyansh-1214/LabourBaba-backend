@@ -20,7 +20,7 @@ export const getWorkers = async (req: Request, res: Response): Promise<void> => 
 export const verifyWorker = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!isAdmin(req)) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
-    const { id } = req.params;
+    const { id } = req.params as any;
     const payload: VerifyWorkerDocumentReq = req.body;
     const worker = await adminService.verifyWorkerDocument(id, payload);
     res.status(200).json({ success: true, data: worker });
@@ -52,7 +52,7 @@ export const getFlaggedWorkers = async (req: Request, res: Response): Promise<vo
 export const suspendWorker = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!isAdmin(req)) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
-    const { id } = req.params;
+    const { id } = req.params as any;
     const payload: SuspendWorkerReq = req.body;
     const result = await adminService.suspendWorker(id, payload);
     res.status(200).json({ success: true, data: result });

@@ -20,7 +20,7 @@ export const getIncoming = async (req: Request, res: Response): Promise<void> =>
 
 export const acceptJob = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { requirementId } = req.params;
+    const { requirementId } = req.params as any;
     const workerId = getWorkerId(req);
     if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const booking = await dispatchService.acceptJob(requirementId, workerId);
@@ -32,7 +32,7 @@ export const acceptJob = async (req: Request, res: Response): Promise<void> => {
 
 export const declineJob = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { requirementId } = req.params;
+    const { requirementId } = req.params as any;
     const workerId = getWorkerId(req);
     if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const response = await dispatchService.declineJob(requirementId, workerId);
@@ -44,7 +44,7 @@ export const declineJob = async (req: Request, res: Response): Promise<void> => 
 
 export const getWaves = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { requirementId } = req.params;
+    const { requirementId } = req.params as any;
     const waves = await dispatchService.getWaves(requirementId);
     res.status(200).json({ success: true, data: waves });
   } catch (error: any) {

@@ -10,7 +10,7 @@ const getCustomerId = (req: Request) => {
 
 export const createReview = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const customerId = getCustomerId(req);
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     
@@ -24,7 +24,7 @@ export const createReview = async (req: Request, res: Response): Promise<void> =
 
 export const getWorkerReviews = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { workerId } = req.params;
+    const { workerId } = req.params as any;
     const reviews = await reviewService.getWorkerReviews(workerId);
     res.status(200).json({ success: true, data: reviews });
   } catch (error: any) {
@@ -34,7 +34,7 @@ export const getWorkerReviews = async (req: Request, res: Response): Promise<voi
 
 export const getBookingReview = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const review = await reviewService.getBookingReview(bookingId);
     res.status(200).json({ success: true, data: review });
   } catch (error: any) {

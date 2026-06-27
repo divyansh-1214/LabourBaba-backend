@@ -3,7 +3,7 @@ import { paymentService } from "../services/paymentServices";
 
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const { amount } = req.body;
     const payment = await paymentService.createOrder(bookingId, amount);
     res.status(201).json({ success: true, data: payment });
@@ -24,7 +24,7 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
 
 export const getPaymentStatus = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const payments = await paymentService.getPaymentStatus(bookingId);
     res.status(200).json({ success: true, data: payments });
   } catch (error: any) {
@@ -34,7 +34,7 @@ export const getPaymentStatus = async (req: Request, res: Response): Promise<voi
 
 export const refundPayment = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const result = await paymentService.refundPayment(bookingId);
     res.status(200).json(result);
   } catch (error: any) {

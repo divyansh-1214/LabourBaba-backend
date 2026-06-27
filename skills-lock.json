@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "bullmq-specialist": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/bullmq-specialist/SKILL.md",
+      "computedHash": "37f493afe82678de5e319fe25006de19adc93b5fe8628797bcbd394919ccdb37"
+    },
+    "jest": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "jest/SKILL.md",
+      "computedHash": "88fc118b16bd61fe13cfdda11d75e8bac0a75ace9a3c4ca832cdad3a1086ed7a"
+    },
     "nodejs-backend-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",

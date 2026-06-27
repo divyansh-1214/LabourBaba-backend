@@ -80,11 +80,12 @@ export const dispatchService = {
   },
 
   async getWaves(requirementId: string) {
-    return await prisma.dispatch_wave.findMany({
-      where: { requirement_id: requirementId },
-      include: {
-        job_dispatch: true
-      }
+    const waves = await prisma.dispatch_wave.findMany({
+      where: { requirement_id: requirementId }
     });
+    const dispatches = await prisma.job_dispatch.findMany({
+      where: { requirement_id: requirementId }
+    });
+    return { waves, dispatches };
   }
 };

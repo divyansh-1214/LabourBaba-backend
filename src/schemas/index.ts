@@ -310,6 +310,15 @@ export const VerifyWorkerDocumentReqSchema = z.object({
   status: z.enum(["VERIFIED", "REJECTED"]),
 }).openapi("VerifyWorkerDocumentReq");
 
+export const WorkerLocationSchema = z.object({
+  id: z.string().uuid(),
+  worker_id: z.string().uuid(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  location: z.string().nullable().optional(),
+  updated_at: z.date().nullable().optional(),
+}).openapi("WorkerLocation");
+
 export const SuspendWorkerReqSchema = z.object({
   reason: z.string().min(1, "Suspension reason is required"),
 }).openapi("SuspendWorkerReq");

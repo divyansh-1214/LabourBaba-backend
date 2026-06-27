@@ -9,7 +9,7 @@ const getUserId = (req: Request) => {
 
 export const getMessages = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const userId = getUserId(req);
     if (!userId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     
@@ -22,7 +22,7 @@ export const getMessages = async (req: Request, res: Response): Promise<void> =>
 
 export const sendMessage = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const { content } = req.body;
     const userId = getUserId(req);
     if (!userId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }

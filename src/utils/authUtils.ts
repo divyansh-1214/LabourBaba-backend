@@ -26,7 +26,7 @@ export async function comparePassword(password: string, hash: string): Promise<b
  * @param payload Object containing user identifiers (e.g. { id, role })
  * @param expiresIn Expiration duration (defaults to '24h')
  */
-export function generateToken(payload: object, expiresIn: string = "24h"): string {
+export function generateToken(payload: object, expiresIn: any = "24h"): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn });
 }
 
@@ -41,3 +41,4 @@ export function verifyToken(token: string): any {
     return null;
   }
 }
+

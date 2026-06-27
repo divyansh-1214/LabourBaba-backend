@@ -32,7 +32,7 @@ export const getMyJobs = async (req: Request, res: Response): Promise<void> => {
 
 export const getJobDetail = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { jobId } = req.params;
+    const { jobId } = req.params as any;
     const job = await jobService.getJobDetail(jobId);
     res.status(200).json({ success: true, data: job });
   } catch (error: any) {
@@ -42,7 +42,7 @@ export const getJobDetail = async (req: Request, res: Response): Promise<void> =
 
 export const cancelJob = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { jobId } = req.params;
+    const { jobId } = req.params as any;
     const customerId = getCustomerId(req);
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const response = await jobService.cancelJob(jobId, customerId);
@@ -54,7 +54,7 @@ export const cancelJob = async (req: Request, res: Response): Promise<void> => {
 
 export const getJobRequirements = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { jobId } = req.params;
+    const { jobId } = req.params as any;
     const requirements = await jobService.getJobRequirements(jobId);
     res.status(200).json({ success: true, data: requirements });
   } catch (error: any) {
@@ -64,7 +64,7 @@ export const getJobRequirements = async (req: Request, res: Response): Promise<v
 
 export const getJobBookings = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { jobId } = req.params;
+    const { jobId } = req.params as any;
     const bookings = await jobService.getJobBookings(jobId);
     res.status(200).json({ success: true, data: bookings });
   } catch (error: any) {

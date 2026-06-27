@@ -11,7 +11,7 @@ const getUserId = (req: Request) => {
 
 export const getBooking = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const booking = await bookingService.getBookingDetail(bookingId);
     res.status(200).json({ success: true, data: booking });
   } catch (error: any) {
@@ -21,7 +21,7 @@ export const getBooking = async (req: Request, res: Response): Promise<void> => 
 
 export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const { otp } = req.body; // Using inline extraction since schema is simple or part of auth
     const workerId = getUserId(req);
     if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
@@ -34,7 +34,7 @@ export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
 
 export const completeBooking = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const workerId = getUserId(req);
     if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const result = await bookingService.completeBooking(bookingId, workerId);
@@ -46,7 +46,7 @@ export const completeBooking = async (req: Request, res: Response): Promise<void
 
 export const confirmComplete = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const customerId = getUserId(req);
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const payload: ConfirmBookingCompleteReq = req.body;
@@ -59,7 +59,7 @@ export const confirmComplete = async (req: Request, res: Response): Promise<void
 
 export const cancelBooking = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const userId = getUserId(req);
     if (!userId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const payload: CancelBookingReq = req.body;
@@ -72,7 +72,7 @@ export const cancelBooking = async (req: Request, res: Response): Promise<void> 
 
 export const getWorkerLocation = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { bookingId } = req.params;
+    const { bookingId } = req.params as any;
     const customerId = getUserId(req);
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const location = await bookingService.getWorkerLocation(bookingId, customerId);

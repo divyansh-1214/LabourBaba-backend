@@ -22,8 +22,7 @@ export const reviewService = {
 
   async getWorkerReviews(workerId: string) {
     return await prisma.review.findMany({
-      where: { worker_id: workerId },
-      orderBy: { created_at: "desc" }
+      where: { worker_id: workerId }
     });
   },
 
