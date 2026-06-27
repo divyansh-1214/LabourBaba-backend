@@ -7,224 +7,249 @@ datasource db {
 }
 
 model Worker {
-  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                 String?            @db.VarChar
-  phone                String?            @unique @db.VarChar
-  profile_picture_url  String?            @db.VarChar
-  aadhaar_last4        String?            @db.VarChar
-  verification_status  String?            @db.VarChar
-  worker_score         Float?
-  worker_rating        Float?
-  total_jobs_completed Int?
-  years_of_experience  Int?
-  is_online            Boolean?
-  last_seen            DateTime?          @db.Timestamp(6)
-  device_id            String?            @db.VarChar
-  device_token         String?            @db.VarChar
-  ip_address           String?            @db.VarChar
-  decline_count        Int?
-  timeout_count        Int?
-  skill_category_id    String             @db.Uuid
-  password             String             @db.VarChar(255)
-  email                String             @unique(map: "worker_email_unique") @db.VarChar(255)
-  city                 String?            @db.VarChar(255)
-  booking              booking[]
-  job_application      job_application[]
-  job_dispatch         job_dispatch[]
-  notification         notification[]
-  review               review[]
-  skill_category       skill_category     @relation(fields: [skill_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  worker_analytics     worker_analytics[]
-  worker_device        worker_device[]
-  worker_document      worker_document[]
-  worker_location      worker_location[]
+  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skill_category_id   String                    @db.Uuid
+  phone               String                    @unique @db.VarChar(15)
+  skill_type          String                    @db.VarChar(100)
+  worker_score        Decimal?                  @default(5.0) @db.Decimal(4, 2)
+  is_online           Boolean?                  @default(false)
+  aadhaar_last4       String?                   @db.Char(4)
+  verification_status String?                   @default("pending") @db.VarChar(30)
+  decline_count       Int?                      @default(0)
+  timeout_count       Int?                      @default(0)
+  device_token        String?
+  location_geo        Unsupported("geography")?
+  deleted_at          DateTime?                 @db.Timestamptz(6)
+  booking             booking[]
+  conversation        conversation[]
+  job_dispatch        job_dispatch[]
+  notification        notification[]
+  review              review[]
+  skill_category      skill_category            @relation(fields: [skill_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_worker_skill_category")
+  worker_analytics    worker_analytics?
+  worker_device       worker_device[]
+  worker_document     worker_document[]
+  worker_location     worker_location[]
 
+  @@index([location_geo], map: "idx_worker_location", type: Gist)
+  @@index([is_online], map: "idx_worker_online")
   @@map("worker")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model booking {
-  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  job_id       String?        @db.Uuid
-  worker_id    String?        @db.Uuid
-  customer_id  String?        @db.Uuid
-  start_time   DateTime?      @db.Timestamp(6)
-  status       String?        @db.VarChar
-  otp_hash     String?        @db.VarChar
-  otp_verified Boolean?
-  customer     customer?      @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  job          job?           @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_booking_job")
-  worker       Worker?        @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_booking_worker")
-  conversation conversation[]
-  payment      payment[]
-  review       review[]
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_id          String          @db.Uuid
+  requirement_id  String          @db.Uuid
+  worker_id       String          @db.Uuid
+  customer_id     String          @db.Uuid
+  status          String?         @db.VarChar(30)
+  otp_hash        String?
+  otp_verified    Boolean?        @default(false)
+  customer        customer        @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_booking_customer")
+  job             job             @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_booking_job")
+  job_requirement job_requirement @relation(fields: [requirement_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_booking_requirement")
+  worker          Worker          @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_booking_worker")
+  conversation    conversation?
+  payment         payment?
+  review          review[]
+
+  @@index([customer_id], map: "idx_booking_customer")
+  @@index([job_id], map: "idx_booking_job")
+  @@index([worker_id], map: "idx_booking_worker")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model job {
-  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  customer_id           String            @db.Uuid
-  category_id           String            @db.Uuid
-  description           String?
-  latitude              Float
-  longitude             Float
-  location              String?
-  budget                Int?
-  status                String?           @db.VarChar
-  dispatch_status       String?           @db.VarChar
-  current_dispatch_rank Int?
-  created_at            DateTime?         @db.Timestamp(6)
-  deleted_at            DateTime?         @db.Timestamp(6)
-  booking               booking[]
-  category              skill_category    @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_category")
-  customer              customer          @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  job_application       job_application[]
-  job_dispatch          job_dispatch[]
-  notification          notification[]
+  id              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id     String                    @db.Uuid
+  latitude        Float?
+  longitude       Float?
+  location_geo    Unsupported("geography")?
+  location        String?
+  status          String?                   @db.VarChar(30)
+  dispatch_status String?                   @db.VarChar(30)
+  created_at      DateTime?                 @default(now()) @db.Timestamptz(6)
+  deleted_at      DateTime?                 @db.Timestamptz(6)
+  booking         booking[]
+  customer        customer                  @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_customer")
+  job_requirement job_requirement[]
+  notification    notification[]
+
+  @@index([customer_id], map: "idx_job_customer")
+  @@index([location_geo], map: "idx_job_location", type: Gist)
 }
 
 model payment {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  booking_id        String?   @db.Uuid
+  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  booking_id        String  @unique @db.Uuid
+  razorpay_order_id String? @unique @db.VarChar(255)
+  status            String? @db.VarChar(30)
   amount            Int?
-  status            String?   @db.VarChar
-  razorpay_order_id String?   @db.VarChar
-  created_at        DateTime? @db.Timestamp(6)
-  booking           booking?  @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_payment_booking")
+  booking           booking @relation(fields: [booking_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_payment_booking")
 }
 
 model review {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  booking_id  String?   @db.Uuid
-  worker_id   String?   @db.Uuid
-  customer_id String?   @db.Uuid
-  rating      Float?
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  booking_id  String   @db.Uuid
+  worker_id   String   @db.Uuid
+  customer_id String   @db.Uuid
+  rating      Decimal? @db.Decimal(2, 1)
   comment     String?
-  created_at  DateTime? @db.Timestamp(6)
-  booking     booking?  @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_review_booking")
-  customer    customer? @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  worker      Worker?   @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  booking     booking  @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_review_booking")
+  customer    customer @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_review_customer")
+  worker      Worker   @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_review_worker")
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model conversation {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  booking_id  String?   @db.Uuid
-  worker_id   String?   @db.Uuid
-  customer_id String?   @db.Uuid
-  created_at  DateTime? @db.Timestamp(6)
-  booking     booking?  @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  booking_id  String    @unique @db.Uuid
+  worker_id   String    @db.Uuid
+  customer_id String    @db.Uuid
+  booking     booking   @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_conversation_booking")
+  customer    customer  @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_conversation_customer")
+  worker      Worker    @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_conversation_worker")
   message     message[]
 }
 
 model customer {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String?   @db.VarChar
-  phone      String?   @unique @db.VarChar
-  email      String?   @db.VarChar
-  city       String?   @db.VarChar
-  created_at DateTime? @db.Timestamp(6)
-  password   String    @db.VarChar(255)
-  booking    booking[]
-  job        job[]
-  review     review[]
-}
-
-/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
-model job_application {
-  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  job_id            String  @db.Uuid
-  worker_id         String  @db.Uuid
-  status            String? @db.VarChar
-  distance_km       Float
-  application_score Float?
-  job               job     @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  worker            Worker  @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone        String         @unique @db.VarChar(15)
+  name         String         @db.VarChar(150)
+  created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime?      @db.Timestamptz(6)
+  booking      booking[]
+  conversation conversation[]
+  job          job[]
+  review       review[]
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model job_dispatch {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  job_id       String?   @db.Uuid
-  worker_id    String?   @db.Uuid
-  rank         Int?
-  status       String?   @db.VarChar
-  notified_at  DateTime? @db.Timestamp(6)
-  responded_at DateTime? @db.Timestamp(6)
-  expires_at   DateTime? @db.Timestamp(6)
-  job          job?      @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  worker       Worker?   @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requirement_id  String          @db.Uuid
+  worker_id       String          @db.Uuid
+  wave_number     Int?
+  wave_position   Int?
+  status          String?         @db.VarChar(30)
+  notified_at     DateTime?       @db.Timestamptz(6)
+  expires_at      DateTime?       @db.Timestamptz(6)
+  responded_at    DateTime?       @db.Timestamptz(6)
+  job_requirement job_requirement @relation(fields: [requirement_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dispatch_requirement")
+  worker          Worker          @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dispatch_worker")
+
+  @@index([requirement_id], map: "idx_dispatch_requirement")
+  @@index([worker_id], map: "idx_dispatch_worker")
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model message {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  conversation_id String?       @db.Uuid
-  sender_id       String?       @db.Uuid
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String       @db.Uuid
+  sender_id       String       @db.Uuid
   content         String?
-  created_at      DateTime?     @db.Timestamp(6)
-  conversation    conversation? @relation(fields: [conversation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sent_at         DateTime?    @default(now()) @db.Timestamptz(6)
+  conversation    conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_message_conversation")
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model notification {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  worker_id  String?   @db.Uuid
-  job_id     String?   @db.Uuid
-  type       String?   @db.VarChar
-  is_read    Boolean?
-  created_at DateTime? @db.Timestamp(6)
-  job        job?      @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  worker     Worker?   @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  worker_id  String    @db.Uuid
+  job_id     String    @db.Uuid
+  type       String?   @db.VarChar(50)
+  is_read    Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  job        job       @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_notification_job")
+  worker     Worker    @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_notification_worker")
+
+  @@index([job_id], map: "idx_notification_job")
+  @@index([worker_id], map: "idx_notification_worker")
 }
 
 model skill_category {
-  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name     String?  @db.VarChar
-  icon_url String?  @db.VarChar
-  job      job[]
-  worker   Worker[]
+  id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name   String   @unique @db.VarChar(100)
+  worker Worker[]
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_analytics {
   id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  worker_id           String?   @db.Uuid
-  avg_response_time_s Float?
-  acceptance_rate     Float?
-  completion_rate     Float?
-  calculated_at       DateTime? @db.Timestamp(6)
-  worker              Worker?   @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  worker_id           String    @unique @db.Uuid
+  avg_response_time_s Decimal?  @db.Decimal(10, 2)
+  acceptance_rate     Decimal?  @db.Decimal(5, 2)
+  completion_rate     Decimal?  @db.Decimal(5, 2)
+  calculated_at       DateTime? @default(now()) @db.Timestamptz(6)
+  worker              Worker    @relation(fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_analytics_worker")
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_device {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  worker_id  String?   @db.Uuid
-  device_id  String?   @db.VarChar
-  ip_address String?   @db.VarChar
-  first_seen DateTime? @db.Timestamp(6)
-  last_seen  DateTime? @db.Timestamp(6)
-  worker     Worker?   @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  worker_id  String  @db.Uuid
+  device_id  String? @db.VarChar(255)
+  ip_address String? @db.VarChar(50)
+  worker     Worker  @relation(fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_device_worker")
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_document {
   id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  worker_id     String? @db.Uuid
-  document_type String? @db.VarChar
-  file_url      String? @db.VarChar
-  status        String? @db.VarChar
-  worker        Worker? @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  worker_id     String  @db.Uuid
+  document_type String? @db.VarChar(50)
+  file_url      String?
+  status        String? @db.VarChar(30)
+  worker        Worker  @relation(fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_document_worker")
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model worker_location {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  worker_id  String?   @db.Uuid
-  latitude   Float?
-  longitude  Float?
-  location   String?
-  updated_at DateTime? @db.Timestamp(6)
-  worker     Worker?   @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id           String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  worker_id    String                    @db.Uuid
+  location_geo Unsupported("geography")?
+  updated_at   DateTime?                 @default(now()) @db.Timestamptz(6)
+  worker       Worker                    @relation(fields: [worker_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_location_worker")
+
+  @@index([worker_id], map: "idx_worker_location_worker")
+}
+
+model dispatch_wave {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requirement_id   String          @db.Uuid
+  wave_number      Int
+  status           String?         @db.VarChar(30)
+  notified_at      DateTime?       @db.Timestamptz(6)
+  resolved_at      DateTime?       @db.Timestamptz(6)
+  workers_notified Int?            @default(0)
+  slots_filled     Int?            @default(0)
+  job_requirement  job_requirement @relation(fields: [requirement_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_wave_requirement")
+}
+
+model job_requirement {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_id              String          @db.Uuid
+  skill_type          String?         @db.VarChar(100)
+  worker_count_needed Int
+  worker_count_filled Int?            @default(0)
+  rate_per_day        Int?
+  status              String?         @db.VarChar(30)
+  current_wave        Int?            @default(1)
+  wave_size           Int?            @default(10)
+  booking             booking[]
+  dispatch_wave       dispatch_wave[]
+  job_dispatch        job_dispatch[]
+  job                 job             @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_requirement_job")
+
+  @@index([job_id], map: "idx_requirement_job")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
 }

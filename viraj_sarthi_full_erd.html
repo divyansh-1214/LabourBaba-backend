@@ -1,0 +1,212 @@
+
+<div id="erd"></div>
+<style>
+#erd svg { max-width: 100%; }
+</style>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+});
+const { svg } = await mermaid.render('erd-svg', `erDiagram
+  CUSTOMER {
+    uuid id PK
+    string phone UK
+    string name
+    timestamptz created_at
+    timestamptz deleted_at
+  }
+  WORKER {
+    uuid id PK
+    string phone UK
+    string skill_type
+    float worker_score
+    bool is_online
+    string aadhaar_last4
+    string verification_status
+    int decline_count
+    int timeout_count
+    string device_token
+    geography location_geo
+    timestamptz deleted_at
+  }
+  SKILL_CATEGORY {
+    uuid id PK
+    string name UK
+  }
+  JOB {
+    uuid id PK
+    uuid customer_id FK
+    float latitude
+    float longitude
+    geography location_geo
+    string location
+    string status
+    string dispatch_status
+    timestamptz created_at
+    timestamptz deleted_at
+  }
+  JOB_REQUIREMENT {
+    uuid id PK
+    uuid job_id FK
+    string skill_type
+    int worker_count_needed
+    int worker_count_filled
+    int rate_per_day
+    string status
+    int current_wave
+    int wave_size
+  }
+  DISPATCH_WAVE {
+    uuid id PK
+    uuid requirement_id FK
+    int wave_number
+    string status
+    timestamptz notified_at
+    timestamptz resolved_at
+    int workers_notified
+    int slots_filled
+  }
+  JOB_DISPATCH {
+    uuid id PK
+    uuid requirement_id FK
+    uuid worker_id FK
+    int wave_number
+    int wave_position
+    string status
+    timestamptz notified_at
+    timestamptz expires_at
+    timestamptz responded_at
+  }
+  BOOKING {
+    uuid id PK
+    uuid job_id FK
+    uuid requirement_id FK
+    uuid worker_id FK
+    uuid customer_id FK
+    string status
+    string otp_hash
+    bool otp_verified
+  }
+  PAYMENT {
+    uuid id PK
+    uuid booking_id FK
+    string razorpay_order_id UK
+    string status
+    int amount
+  }
+  REVIEW {
+    uuid id PK
+    uuid booking_id FK
+    uuid worker_id FK
+    uuid customer_id FK
+    float rating
+    string comment
+  }
+  CONVERSATION {
+    uuid id PK
+    uuid booking_id FK
+    uuid worker_id FK
+    uuid customer_id FK
+  }
+  MESSAGE {
+    uuid id PK
+    uuid conversation_id FK
+    uuid sender_id
+    string content
+    timestamptz sent_at
+  }
+  WORKER_LOCATION {
+    uuid id PK
+    uuid worker_id FK
+    geography location_geo
+    timestamptz updated_at
+  }
+  WORKER_DEVICE {
+    uuid id PK
+    uuid worker_id FK
+    string device_id
+    string ip_address
+  }
+  WORKER_DOCUMENT {
+    uuid id PK
+    uuid worker_id FK
+    string document_type
+    string file_url
+    string status
+  }
+  WORKER_ANALYTICS {
+    uuid id PK
+    uuid worker_id FK
+    float avg_response_time_s
+    float acceptance_rate
+    float completion_rate
+    timestamptz calculated_at
+  }
+  NOTIFICATION {
+    uuid id PK
+    uuid worker_id FK
+    uuid job_id FK
+    string type
+    bool is_read
+    timestamptz created_at
+  }
+
+  CUSTOMER ||--o{ JOB : posts
+  SKILL_CATEGORY ||--o{ WORKER : classifies
+  JOB ||--|{ JOB_REQUIREMENT : spawns
+  JOB_REQUIREMENT ||--|{ DISPATCH_WAVE : runs
+  DISPATCH_WAVE ||--|{ JOB_DISPATCH : contains
+  WORKER ||--o{ JOB_DISPATCH : receives
+  JOB_REQUIREMENT ||--o{ BOOKING : fills
+  WORKER ||--o{ BOOKING : assigned_to
+  CUSTOMER ||--o{ BOOKING : places
+  JOB ||--o{ BOOKING : for
+  BOOKING ||--|| PAYMENT : settles
+  BOOKING ||--|| CONVERSATION : opens
+  BOOKING ||--o{ REVIEW : generates
+  CONVERSATION ||--o{ MESSAGE : contains
+  WORKER ||--o{ WORKER_LOCATION : tracks
+  WORKER ||--o{ WORKER_DEVICE : registers
+  WORKER ||--o{ WORKER_DOCUMENT : has
+  WORKER ||--o| WORKER_ANALYTICS : has
+  WORKER ||--o{ NOTIFICATION : receives
+  JOB ||--o{ NOTIFICATION : triggers
+`);
+document.getElementById('erd').innerHTML = svg;
+
+document.querySelectorAll('#erd svg .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+
+document.querySelectorAll('#erd svg .row-rect-odd path, #erd svg .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>

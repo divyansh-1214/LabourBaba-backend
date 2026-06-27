@@ -6,35 +6,21 @@ import {
   JobSchema,
   BookingSchema,
   PaymentSchema,
-  ReviewSchema
+  ReviewSchema,
+  JobRequirementSchema,
+  JobDispatchSchema
 } from "../schemas";
 
 export type Customer = z.infer<typeof CustomerSchema>;
 export type Worker = z.infer<typeof WorkerSchema>;
 export type SkillCategory = z.infer<typeof SkillCategorySchema>;
 export type Job = z.infer<typeof JobSchema>;
+export type JobRequirement = z.infer<typeof JobRequirementSchema>;
+export type JobDispatch = z.infer<typeof JobDispatchSchema>;
 export type Booking = z.infer<typeof BookingSchema>;
 export type Payment = z.infer<typeof PaymentSchema>;
 export type Review = z.infer<typeof ReviewSchema>;
 
-export interface JobApplication {
-  id: string;
-  job_id?: string;
-  worker_id?: string;
-  status?: string;
-  distance_km?: number;
-  application_score?: number;
-}
-export interface JobDispatch {
-  id: string;
-  job_id?: string;
-  worker_id?: string;
-  rank?: number;
-  status?: string;
-  notified_at?: Date;
-  responded_at?: Date;
-  expires_at?: Date;
-}
 export interface Conversation {
   id: string;
   booking_id?: string;
@@ -91,19 +77,23 @@ export interface WorkerLocation {
 
 export interface CreateJobDto {
   customer_id: string;
-  category_id: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  location: string;
-  budget: number;
+  latitude?: number;
+  longitude?: number;
+  location?: string;
+  requirements?: {
+    skill_type?: string;
+    worker_count_needed: number;
+    rate_per_day?: number;
+  }[];
 }
 export interface ApplyJobDto {
   job_id: string;
+  requirement_id: string;
   worker_id: string;
 }
 export interface CreateBookingDto {
   job_id: string;
+  requirement_id: string;
   worker_id: string;
   customer_id: string;
 }

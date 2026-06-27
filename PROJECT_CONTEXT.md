@@ -16,6 +16,7 @@ The project has the following directory layout under the source root (`src/`):
 - **`src/`**
   - **`config/`**
     - `prisma.ts`: Configures the connection pooling (`pg.Pool`) and initializes `PrismaClient` with the PostgreSQL adapter (`@prisma/adapter-pg`).
+    - `redis.ts`: Configures the Upstash Redis client.
     - `swagger.ts`: Configures and exports Swagger (OpenAPI) setup helper using `@asteasolutions/zod-to-openapi` and `swagger-ui-express`.
   - **`controllers/`**
     - `customerAuthController.ts`: Handles customer sign-up/login authentication.
@@ -23,6 +24,7 @@ The project has the following directory layout under the source root (`src/`):
     - `jobController.ts`: Handles retrieving and creating jobs.
     - `skillControllers.ts`: Handles retrieving and adding skill categories.
     - `workerController.ts`: Handles retrieving and adding workers.
+    - `worker_location.controller.ts`: Handles requests related to worker location (e.g., adding/updating worker location).
   - **`middlewares/`**
     - `authMiddleware.ts`: Custom middleware for verifying JWT tokens.
     - `validationMiddleware.ts`: Custom middleware using Zod schema to validate request bodies.
@@ -36,6 +38,7 @@ The project has the following directory layout under the source root (`src/`):
     - `index.ts`: Contains Zod validation schemas for requests and responses, registered to the Swagger/OpenAPI registry.
   - **`services/`**
     - `customerServices.ts`: Abstracted business logic layer for customer actions.
+    - `job.services.ts`: Abstracts business logic for jobs, including creating jobs, calculating worker distance using the Haversine formula, and auto-creating job applications for matching nearby workers.
   - **`type/`**
     - `api_req.type.ts`: Defines TypeScript interfaces/types for request payloads.
     - `api_res.types.ts`: Defines TypeScript interfaces/types for API responses.
@@ -73,9 +76,9 @@ Represents the service providers (workers) on the platform.
 *   `ip_address`: String (VarChar, optional)
 *   `decline_count`: Int (optional)
 *   `timeout_count`: Int (optional)
-*   `skill_category_id`: UUID (foreign key referencing `skill_category`, optional)
-*   `password`: String (VarChar 255)
-*   `email`: String (unique VarChar 255)
+*   `skill_category_id`: UUID (foreign key referencing `skill_category`, required)
+*   `password`: String (VarChar 255, required)
+*   `email`: String (unique VarChar 255, required)
 *   `city`: String (VarChar 255, optional)
 
 #### `customer` (`customer`)
@@ -102,11 +105,11 @@ Tracks job allocations and hiring status between customers and workers.
 #### `job`
 Represents service tasks posted by customers.
 *   `id`: UUID, Primary Key
-*   `customer_id`: UUID (foreign key referencing `customer`, optional)
-*   `category_id`: UUID (foreign key referencing `skill_category`, optional)
+*   `customer_id`: UUID (foreign key referencing `customer`, required)
+*   `category_id`: UUID (foreign key referencing `skill_category`, required)
 *   `description`: String (optional)
-*   `latitude`: Float (optional)
-*   `longitude`: Float (optional)
+*   `latitude`: Float (required)
+*   `longitude`: Float (required)
 *   `location`: String (optional)
 *   `budget`: Int (optional)
 *   `status`: String (VarChar, optional)
@@ -168,10 +171,10 @@ Categories for skills (e.g., Plumbing, Electrician).
 #### `job_application`
 Applications submitted by workers for specific jobs.
 *   `id`: UUID, Primary Key
-*   `job_id`: UUID (foreign key referencing `job`, optional)
-*   `worker_id`: UUID (foreign key referencing `Worker`, optional)
+*   `job_id`: UUID (foreign key referencing `job`, required)
+*   `worker_id`: UUID (foreign key referencing `Worker`, required)
 *   `status`: String (VarChar, optional)
-*   `distance_km`: Float (optional)
+*   `distance_km`: Float (required)
 *   `application_score`: Float (optional)
 
 #### `job_dispatch`
@@ -233,6 +236,7 @@ Real-time or last known coordinates of a worker.
     *   `@prisma/client` (v7.8.0) - Query builder.
     *   `@supabase/server` (v1.1.0) - Supabase server utility helper.
     *   `@supabase/supabase-js` (v2.108.2) - Supabase JS client.
+    *   `@upstash/redis` (v1.38.0) - Serverless Redis client.
     *   `jsonwebtoken` & `bcrypt` - User authentication and hashing utilities.
     *   `zod` (v4.4.3) & `@asteasolutions/zod-to-openapi` (v8.5.0) - Input validation and OpenAPI documentation integration.
     *   `swagger-ui-express` (v5.0.1) - Serve Swagger OpenAPI documentation.
