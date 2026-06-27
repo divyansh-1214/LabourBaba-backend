@@ -1,0 +1,87 @@
+import prisma from "../config/prisma";
+import { CreateWorkerReq, UpdateWorkerProfileReq, UpdateWorkerLocationReq, UpdateWorkerOnlineStatusReq, UploadWorkerDocumentReq } from "../type/api_req.type";
+
+export const workerService = {
+  async register(payload: CreateWorkerReq) {
+    return await prisma.worker.create({
+      data: {
+        skill_category_id: payload.skill_category_id,
+        phone: payload.phone,
+        skill_type: payload.skill_type,
+        aadhaar_last4: payload.aadhaar_last4,
+        device_token: payload.device_token,
+      }
+    });
+  },
+
+  async getProfile(workerId: string) {
+    const worker = await prisma.worker.findUnique({
+      where: { id: workerId },
+      include: { skill_category: true }
+    });
+    if (!worker) throw new Error("Worker not found");
+    return worker;
+  },
+
+  async updateProfile(workerId: string, payload: UpdateWorkerProfileReq) {
+    return await prisma.worker.update({
+      where: { id: workerId },
+      data: payload
+    });
+  },
+
+  async updateLocation(workerId: string, payload: UpdateWorkerLocationReq) {
+    // In a real application, also update redis for fast geo queries
+    return await prisma.worker_location.create({
+      data: {
+        worker_id: workerId,
+        // PostGIS integration for location_geo omitted for brevity; update longitude/latitude separately if added to model
+      }
+    });
+  },
+
+  async updateOnlineStatus(workerId: string, payload: UpdateWorkerOnlineStatusReq) {
+    return await prisma.worker.update({
+      where: { id: workerId },
+      data: { is_online: payload.is_online }
+    });
+  },
+
+  async uploadDocument(workerId: string, payload: UploadWorkerDocumentReq) {
+    return await prisma.worker_document.create({
+      data: {
+        worker_id: workerId,
+        document_type: payload.document_type,
+        file_url: payload.file_url,
+        status: "PENDING"
+      }
+    });
+  },
+
+  async getDocuments(workerId: string) {
+    return await prisma.worker_document.findMany({
+      where: { worker_id: workerId }
+    });
+  },
+
+  async getAnalytics(workerId: string) {
+    return await prisma.worker_analytics.findUnique({
+      where: { worker_id: workerId }
+    });
+  },
+
+  async getBookings(workerId: string) {
+    return await prisma.booking.findMany({
+      where: { worker_id: workerId },
+      include: { job: true, customer: true }
+    });
+  },
+
+  async getEarnings(workerId: string) {
+    const payments = await prisma.payment.findMany({
+      where: { booking: { worker_id: workerId }, status: "COMPLETED" },
+      include: { booking: true }
+    });
+    return payments.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  }
+};

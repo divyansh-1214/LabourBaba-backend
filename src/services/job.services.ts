@@ -1,83 +1,95 @@
 import prisma from "../config/prisma";
 import { CreateJobReq } from "../type/api_req.type";
 
-export const makeJob = async (payload: CreateJobReq) => {
-  const now = new Date();
-  const data = {
-    customer_id: payload.customer_id,
-    category_id: payload.category_id,
-    description: payload.description,
-    latitude: payload.latitude,
-    longitude: payload.longitude,
-    location: payload.location,
-    budget: payload.budget,
-    status: "OPEN", // Default initial status
-    dispatch_status: "PENDING",
-    created_at: now.toISOString()
-  }
+export const jobService = {
+  async createJob(payload: CreateJobReq) {
+    return await prisma.$transaction(async (tx) => {
+      const job = await tx.job.create({
+        data: {
+          customer_id: payload.customer_id,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          location: payload.location,
+          status: "OPEN",
+          dispatch_status: "PENDING",
+        }
+      });
 
-  const job = await prisma.job.create({ data: data })
+      if (payload.requirements && payload.requirements.length > 0) {
+        for (const req of payload.requirements) {
+          await tx.job_requirement.create({
+            data: {
+              job_id: job.id,
+              skill_type: req.skill_type,
+              worker_count_needed: req.worker_count_needed,
+              rate_per_day: req.rate_per_day,
+              status: "OPEN"
+            }
+          });
+        }
+      }
+      return job;
+    });
+  },
 
-  // Find all workers with matching skill category ID
-  const workers = await prisma.worker.findMany({
-    where: {
-      skill_category_id: payload.category_id,
-    },
-    include: {
-      worker_location: {
-        orderBy: {
-          updated_at: "desc",
-        },
-        take: 1,
-      },
-    },
-  });
+  async getJobsByCustomer(customerId: string) {
+    return await prisma.job.findMany({
+      where: { customer_id: customerId },
+      include: { job_requirement: true }
+    });
+  },
 
-  // Calculate distance and create job application for each worker
-  for (const worker of workers) {
-    const latestLocation = worker.worker_location?.[0];
-    if (
-      !latestLocation ||
-      typeof latestLocation.latitude !== "number" ||
-      typeof latestLocation.longitude !== "number"
-    ) {
-      console.log(`Skipping worker ${worker.id} due to missing or invalid location coordinates.`);
-      continue;
-    }
+  async getJobDetail(jobId: string) {
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: { 
+        job_requirement: { include: { job_dispatch: true } } 
+      }
+    });
+    if (!job) throw new Error("Job not found");
+    return job;
+  },
 
-    const distance = calculateDistance(
-      payload.latitude,
-      payload.longitude,
-      latestLocation.latitude,
-      latestLocation.longitude
-    );
+  async cancelJob(jobId: string, customerId: string) {
+    return await prisma.$transaction(async (tx) => {
+      const job = await tx.job.findUnique({ where: { id: jobId } });
+      if (!job) throw new Error("Job not found");
+      if (job.customer_id !== customerId) throw new Error("Unauthorized");
+      if (job.status === "COMPLETED") throw new Error("Cannot cancel a completed job");
 
-    await prisma.job_application.create({
-      data: {
-        job_id: job.id,
-        worker_id: worker.id,
-        distance_km: distance,
-        status: "PENDING",
-      },
+      await tx.job.update({
+        where: { id: jobId },
+        data: { status: "CANCELLED" }
+      });
+
+      await tx.job_requirement.updateMany({
+        where: { job_id: jobId },
+        data: { status: "CANCELLED" }
+      });
+
+      // Also cancel pending dispatches
+      const reqs = await tx.job_requirement.findMany({ where: { job_id: jobId } });
+      for (const r of reqs) {
+        await tx.job_dispatch.updateMany({
+          where: { requirement_id: r.id, status: "PENDING" },
+          data: { status: "CANCELLED" }
+        });
+      }
+
+      return { success: true, message: "Job cancelled" };
+    });
+  },
+
+  async getJobRequirements(jobId: string) {
+    return await prisma.job_requirement.findMany({
+      where: { job_id: jobId }
+    });
+  },
+
+  async getJobBookings(jobId: string) {
+    return await prisma.booking.findMany({
+      where: { job_id: jobId },
+      include: { worker: true }
     });
   }
-
-  return job
-}
-
-function deg2rad(deg: number): number {
-  return deg * (Math.PI / 180);
-}
-
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Radius of the earth in km
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c; // Distance in km
-  return d;
-}
+};

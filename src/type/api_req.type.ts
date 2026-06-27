@@ -13,7 +13,16 @@ import {
   UpdateWorkerLocationReqSchema,
   UploadWorkerDocumentReqSchema,
   SignupCustomerReqSchema,
-  LoginCustomerReqSchema
+  LoginCustomerReqSchema,
+  SendOtpReqSchema,
+  AuthVerifyOtpReqSchema,
+  RefreshTokenReqSchema,
+  UpdateWorkerProfileReqSchema,
+  UpdateWorkerOnlineStatusReqSchema,
+  ConfirmBookingCompleteReqSchema,
+  CancelBookingReqSchema,
+  VerifyWorkerDocumentReqSchema,
+  SuspendWorkerReqSchema
 } from "../schemas";
 
 export type CreateWorkerReq = z.infer<typeof CreateWorkerReqSchema>;
@@ -30,6 +39,15 @@ export type UpdateWorkerLocationReq = z.infer<typeof UpdateWorkerLocationReqSche
 export type UploadWorkerDocumentReq = z.infer<typeof UploadWorkerDocumentReqSchema>;
 export type SignupCustomerReq = z.infer<typeof SignupCustomerReqSchema>;
 export type LoginCustomerReq = z.infer<typeof LoginCustomerReqSchema>;
+export type SendOtpReq = z.infer<typeof SendOtpReqSchema>;
+export type AuthVerifyOtpReq = z.infer<typeof AuthVerifyOtpReqSchema>;
+export type RefreshTokenReq = z.infer<typeof RefreshTokenReqSchema>;
+export type UpdateWorkerProfileReq = z.infer<typeof UpdateWorkerProfileReqSchema>;
+export type UpdateWorkerOnlineStatusReq = z.infer<typeof UpdateWorkerOnlineStatusReqSchema>;
+export type ConfirmBookingCompleteReq = z.infer<typeof ConfirmBookingCompleteReqSchema>;
+export type CancelBookingReq = z.infer<typeof CancelBookingReqSchema>;
+export type VerifyWorkerDocumentReq = z.infer<typeof VerifyWorkerDocumentReqSchema>;
+export type SuspendWorkerReq = z.infer<typeof SuspendWorkerReqSchema>;
 
 export enum JobStatus {
   OPEN = "OPEN",

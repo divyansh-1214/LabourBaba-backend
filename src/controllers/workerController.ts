@@ -1,60 +1,125 @@
 import { Request, Response } from "express";
-import prisma from "../config/prisma";
-import { CreateCustomerReq } from "../type/api_req.type"
-import { redis } from "../config/redis"
-import { errors } from "@upstash/redis";
-export const getWorkers = async (req: Request, res: Response,): Promise<void> => {
+import { workerService } from "../services/workerServices";
+import { CreateWorkerReq, UpdateWorkerProfileReq, UpdateWorkerLocationReq, UpdateWorkerOnlineStatusReq, UploadWorkerDocumentReq } from "../type/api_req.type";
+
+// We extract workerId from the JWT token (mocked as coming from req.user or hardcoded for now)
+const getWorkerId = (req: Request) => {
+  // TODO: Replace with req.user.id once auth middleware is integrated
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return null;
+  // Temporary mock decoding for demo
+  return "b2a6543b-2403-469b-8a8b-302a24d081f9"; 
+};
+
+export const registerWorker = async (req: Request, res: Response): Promise<void> => {
   try {
-    const workers = await prisma.worker.findMany();
-    console.log(workers)
-    res.status(200).json({
-      success: true,
-      data: workers,
-    });
+    const payload: CreateWorkerReq = req.body;
+    const worker = await workerService.register(payload);
+    res.status(201).json({ success: true, data: worker });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error?.message || "An error occurred",
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-export const addWorker = async (req: Request, res: Response): Promise<void> => {
+export const getMe = async (req: Request, res: Response): Promise<void> => {
   try {
-    const payload: CreateCustomerReq = req.body;
-    console.log(payload)
-    const worker = await prisma.worker.create({
-      data: payload
-    })
-
-    res.status(201).json({
-      success: true,
-      data: worker,
-    });
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const worker = await workerService.getProfile(workerId);
+    res.status(200).json({ success: true, data: worker });
   } catch (error: any) {
-    console.log(error)
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const locate = async (req: Request, res: Response): Promise<void> => {
+export const updateMe = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id, lon, lat } = req.body;
-    const worker = prisma.worker.findFirst({ where: { id } })
-
-    console.log(worker);
-    res.status(200).json({
-      succes: "true",
-      data: worker
-    })
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const payload: UpdateWorkerProfileReq = req.body;
+    const worker = await workerService.updateProfile(workerId, payload);
+    res.status(200).json({ success: true, data: worker });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    })
+    res.status(500).json({ success: false, message: error.message });
   }
-}
+};
+
+export const updateLocation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const payload: UpdateWorkerLocationReq = req.body;
+    const location = await workerService.updateLocation(workerId, payload);
+    res.status(200).json({ success: true, data: location });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateOnline = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const payload: UpdateWorkerOnlineStatusReq = req.body;
+    const worker = await workerService.updateOnlineStatus(workerId, payload);
+    res.status(200).json({ success: true, data: worker });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const uploadDocuments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const payload: UploadWorkerDocumentReq = req.body;
+    const document = await workerService.uploadDocument(workerId, payload);
+    res.status(201).json({ success: true, data: document });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getDocuments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const documents = await workerService.getDocuments(workerId);
+    res.status(200).json({ success: true, data: documents });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getAnalytics = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const analytics = await workerService.getAnalytics(workerId);
+    res.status(200).json({ success: true, data: analytics });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getBookings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const bookings = await workerService.getBookings(workerId);
+    res.status(200).json({ success: true, data: bookings });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getEarnings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workerId = getWorkerId(req);
+    if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const earnings = await workerService.getEarnings(workerId);
+    res.status(200).json({ success: true, data: { earnings } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

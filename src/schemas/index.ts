@@ -225,3 +225,91 @@ export const LoginCustomerReqSchema = z.object({
   password: z.string().min(1, "Password is required").openapi({ example: "mysecurepassword" }),
 }).openapi("LoginCustomerReq");
 
+export const ConversationSchema = z.object({
+  id: z.string().uuid(),
+  booking_id: z.string().uuid(),
+  worker_id: z.string().uuid(),
+  customer_id: z.string().uuid(),
+}).openapi("Conversation");
+
+export const MessageSchema = z.object({
+  id: z.string().uuid(),
+  conversation_id: z.string().uuid(),
+  sender_id: z.string().uuid(),
+  content: z.string().nullable().optional(),
+  sent_at: z.date().nullable().optional(),
+}).openapi("Message");
+
+export const NotificationSchema = z.object({
+  id: z.string().uuid(),
+  worker_id: z.string().uuid(),
+  job_id: z.string().uuid(),
+  type: z.string().nullable().optional(),
+  is_read: z.boolean().nullable().optional(),
+  created_at: z.date().nullable().optional(),
+}).openapi("Notification");
+
+export const WorkerDocumentSchema = z.object({
+  id: z.string().uuid(),
+  worker_id: z.string().uuid(),
+  document_type: z.string().nullable().optional(),
+  file_url: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+}).openapi("WorkerDocument");
+
+export const WorkerDeviceSchema = z.object({
+  id: z.string().uuid(),
+  worker_id: z.string().uuid(),
+  device_id: z.string().nullable().optional(),
+  ip_address: z.string().nullable().optional(),
+}).openapi("WorkerDevice");
+
+export const WorkerAnalyticsSchema = z.object({
+  id: z.string().uuid(),
+  worker_id: z.string().uuid(),
+  avg_response_time_s: z.number().nullable().optional(),
+  acceptance_rate: z.number().nullable().optional(),
+  completion_rate: z.number().nullable().optional(),
+  calculated_at: z.date().nullable().optional(),
+}).openapi("WorkerAnalytics");
+
+export const SendOtpReqSchema = z.object({
+  phone: z.string().min(10, "Phone number must be at least 10 digits").openapi({ example: "+919876543210" }),
+  type: z.enum(["login", "register"]).openapi({ example: "login" }),
+}).openapi("SendOtpReq");
+
+export const AuthVerifyOtpReqSchema = z.object({
+  phone: z.string().min(10, "Phone number must be at least 10 digits").openapi({ example: "+919876543210" }),
+  otp: z.string().length(6, "OTP must be 6 digits").openapi({ example: "123456" }),
+}).openapi("AuthVerifyOtpReq");
+
+export const RefreshTokenReqSchema = z.object({
+  token: z.string().min(1, "Refresh token is required"),
+}).openapi("RefreshTokenReq");
+
+export const UpdateWorkerProfileReqSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string().min(10).optional(),
+  skill_type: z.string().optional(),
+}).openapi("UpdateWorkerProfileReq");
+
+export const UpdateWorkerOnlineStatusReqSchema = z.object({
+  is_online: z.boolean(),
+}).openapi("UpdateWorkerOnlineStatusReq");
+
+export const ConfirmBookingCompleteReqSchema = z.object({
+  rating: z.number().min(1).max(5).optional(),
+  comment: z.string().optional(),
+}).openapi("ConfirmBookingCompleteReq");
+
+export const CancelBookingReqSchema = z.object({
+  reason: z.string().min(1, "Cancellation reason is required"),
+}).openapi("CancelBookingReq");
+
+export const VerifyWorkerDocumentReqSchema = z.object({
+  status: z.enum(["VERIFIED", "REJECTED"]),
+}).openapi("VerifyWorkerDocumentReq");
+
+export const SuspendWorkerReqSchema = z.object({
+  reason: z.string().min(1, "Suspension reason is required"),
+}).openapi("SuspendWorkerReq");

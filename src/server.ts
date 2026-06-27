@@ -7,6 +7,13 @@ import workerRoutes from "./routes/workerRoutes";
 import clientRoute from "./routes/customerRoutes";
 import skillRoute from "./routes/skillRouter";
 import jobRoutes from "./routes/jobRoutes";
+import authRoutes from "./routes/authRoutes";
+import dispatchRoutes from "./routes/dispatchRoutes";
+import bookingRoutes from "./routes/bookingRoutes";
+import paymentRoutes from "./routes/paymentRoutes";
+import reviewRoutes from "./routes/reviewRoutes";
+import chatRoutes from "./routes/chatRoutes";
+import adminRoutes from "./routes/adminRoutes";
 import { setupSwagger } from "./config/swagger";
 import workerLocationRoute from "./routes/worker_location.routes";
 dotenv.config();
@@ -25,6 +32,14 @@ app.use("/api/workers", workerRoutes);
 app.use("/api/skill", skillRoute);
 app.use("/api/worker_location", workerLocationRoute);
 app.use("/api/jobs", jobRoutes);
+
+app.use("/api/auth", authRoutes);
+app.use("/api/dispatch", dispatchRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Setup Swagger UI
 setupSwagger(app);

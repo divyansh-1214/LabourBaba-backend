@@ -1,0 +1,49 @@
+import express from "express";
+import { getIncoming, acceptJob, declineJob, getWaves } from "../controllers/dispatchController";
+import { registry } from "../config/swagger";
+import { z } from "zod";
+import { JobDispatchSchema, BookingSchema } from "../schemas";
+
+const router = express.Router();
+
+registry.registerPath({
+  method: "get",
+  path: "/api/dispatch/incoming",
+  summary: "Get active incoming job",
+  tags: ["Dispatch"],
+  responses: { 200: { description: "Success", content: { "application/json": { schema: z.object({ success: z.boolean(), data: JobDispatchSchema }) } } } }
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/dispatch/{requirementId}/accept",
+  summary: "Accept job slot",
+  tags: ["Dispatch"],
+  parameters: [{ in: "path", name: "requirementId", required: true, schema: { type: "string", format: "uuid" } }],
+  responses: { 200: { description: "Success", content: { "application/json": { schema: z.object({ success: z.boolean(), data: BookingSchema }) } } } }
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/dispatch/{requirementId}/decline",
+  summary: "Decline job slot",
+  tags: ["Dispatch"],
+  parameters: [{ in: "path", name: "requirementId", required: true, schema: { type: "string", format: "uuid" } }],
+  responses: { 200: { description: "Success" } }
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/dispatch/{requirementId}/waves",
+  summary: "View wave history",
+  tags: ["Dispatch"],
+  parameters: [{ in: "path", name: "requirementId", required: true, schema: { type: "string", format: "uuid" } }],
+  responses: { 200: { description: "Success" } }
+});
+
+router.get("/incoming", getIncoming);
+router.post("/:requirementId/accept", acceptJob);
+router.post("/:requirementId/decline", declineJob);
+router.get("/:requirementId/waves", getWaves);
+
+export default router;
