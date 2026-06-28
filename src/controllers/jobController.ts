@@ -2,17 +2,35 @@ import { Request, Response } from "express";
 import { jobService } from "../services/job.services";
 import { jobReqService } from "../services/jobReqServices";
 import { CreateJobReq, CreateJobRequirementReq } from "../type/api_req.type";
+import prisma from "../config/prisma";
+import { verifyToken } from "../utils/authUtils";
 
-const getCustomerId = (req: Request) => {
-  // TODO: Replace with req.user.id once auth is integrated
+const getCustomerId = async (req: Request): Promise<string | null> => {
+  // 1. Check if req.user is set (e.g. by auth middleware)
+  if ((req as any).user?.id) {
+    return (req as any).user.id;
+  }
+  // 2. Decode authorization header if present
   const authHeader = req.headers.authorization;
-  if (!authHeader) return null;
-  return "a1b2c3d4-e5f6-7890-1234-56789abcdef0"; 
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    const decoded = verifyToken(token);
+    if (decoded && decoded.id) {
+      return decoded.id;
+    }
+  }
+  return "there is not auth tocken";
 };
 
+// this function will connect will create the job and its job requirement it self
 export const createJob = async (req: Request, res: Response): Promise<void> => {
   try {
     const payload: CreateJobReq = req.body;
+    if (!payload.customer_id) {
+      res.status(400).json({ success: false, message: "Customer ID is required" });
+      return;
+    }
+
     const job = await jobService.createJob(payload);
     res.status(201).json({ success: true, data: job });
   } catch (error: any) {
@@ -22,7 +40,7 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
 
 export const getMyJobs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const customerId = getCustomerId(req);
+    const customerId = await getCustomerId(req);
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const jobs = await jobService.getJobsByCustomer(customerId);
     res.status(200).json({ success: true, data: jobs });
@@ -44,7 +62,7 @@ export const getJobDetail = async (req: Request, res: Response): Promise<void> =
 export const cancelJob = async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params as any;
-    const customerId = getCustomerId(req);
+    const customerId = await getCustomerId(req);
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const response = await jobService.cancelJob(jobId, customerId);
     res.status(200).json(response);
@@ -83,4 +101,3 @@ export const createJobRequirement = async (req: Request, res: Response): Promise
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
