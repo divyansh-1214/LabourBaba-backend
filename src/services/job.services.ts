@@ -1,18 +1,19 @@
-import prisma from "../config/prisma";
-import { CreateJobReq } from "../type/api_req.type";
+import prisma from '../config/prisma';
+import { CreateJobReq } from '../type/api_req.type';
+import { dispatchQueue } from '../config/bullmq';
 
 export const jobService = {
   async createJob(payload: CreateJobReq) {
-    return await prisma.$transaction(async (tx) => {
+    const job = await prisma.$transaction(async (tx) => {
       const job = await tx.job.create({
         data: {
           customer_id: payload.customer_id,
           latitude: payload.latitude,
           longitude: payload.longitude,
           location: payload.location,
-          status: "OPEN",
-          dispatch_status: "PENDING",
-        }
+          status: 'OPEN',
+          dispatch_status: 'PENDING',
+        },
       });
 
       if (payload.requirements && payload.requirements.length > 0) {
@@ -23,13 +24,36 @@ export const jobService = {
               skill_type: req.skill_type,
               worker_count_needed: req.worker_count_needed,
               rate_per_day: req.rate_per_day,
-              status: "OPEN"
-            }
+              status: 'OPEN',
+            },
           });
         }
       }
       return job;
     });
+
+    // Fire one BullMQ dispatch job per requirement in parallel (fire-and-forget)
+    const requirements = await prisma.job_requirement.findMany({
+      where: { job_id: job.id },
+      select: { id: true },
+    });
+
+    await Promise.all(
+      requirements.map((r) =>
+        dispatchQueue.add('dispatch-requirement', {
+          requirementId: r.id,
+          jobId: job.id,
+          waveNumber: 1,
+          offset: 0,
+        }),
+      ),
+    );
+
+    console.log(
+      `[jobService] Dispatched ${requirements.length} BullMQ job(s) for job ${job.id}`,
+    );
+
+    return job;
   },
 
   async getJobsByCustomer(customerId: string) {

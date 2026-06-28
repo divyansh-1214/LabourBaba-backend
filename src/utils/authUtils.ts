@@ -42,3 +42,17 @@ export function verifyToken(token: string): any {
   }
 }
 
+/**
+ * Generate a random 6-digit OTP string.
+ */
+export function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/**
+ * Hash an OTP string using bcrypt.
+ * @param otp The plain text OTP
+ */
+export async function hashOTP(otp: string): Promise<string> {
+  return bcrypt.hash(otp, SALT_ROUNDS);
+}

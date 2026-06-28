@@ -18,6 +18,7 @@ The project has the following directory layout under the source root (`src/`):
     - `prisma.ts`: Configures the connection pooling (`pg.Pool`) and initializes `PrismaClient` with the PostgreSQL adapter (`@prisma/adapter-pg`).
     - `redis.ts`: Configures the Upstash Redis client.
     - `swagger.ts`: Configures and exports Swagger (OpenAPI) setup helper using `@asteasolutions/zod-to-openapi` and `swagger-ui-express`.
+    - `bullmq.ts`: Declares `dispatchQueue` and `timeoutQueue` with connection options configured for Aiven Redis.
   - **`controllers/`**
     - `authController.ts`: Handles worker and customer auth (OTP delivery and JWT verification/refresh/logout).
     - `customerAuthController.ts`: Handles customer sign-up/login authentication.
@@ -53,20 +54,24 @@ The project has the following directory layout under the source root (`src/`):
   - **`services/`**
     - `authServices.ts`: Logic for SMS OTP and verification tokens.
     - `customerServices.ts`: Abstracted business logic layer for customer actions.
-    - `job.services.ts`: Abstracts business logic for jobs.
+    - `job.services.ts`: Abstracts business logic for jobs, including queuing BullMQ dispatch jobs.
     - `workerServices.ts`: Handles worker updates, document storage registrations, and booking history calculations.
-    - `dispatchServices.ts`: Handles transaction logic for atomic booking creations upon job dispatch acceptances.
+    - `dispatchServices.ts`: Handles transaction logic for atomic booking creations upon job dispatch acceptances, immediate next wave triggers on decline, and job completeness checks.
     - `bookingServices.ts`: State management and OTP verification routines for active bookings.
     - `paymentServices.ts`: Webhook handlers and Razorpay mock integrations.
     - `reviewServices.ts`: Database reviews mapping.
     - `chatServices.ts`: Conversation generation and persistent chat tracking.
     - `adminServices.ts`: Platform monitoring, flagged worker logic, and document verifications.
+    - `fcm.ts`: Stub service for sending Firebase Cloud Messaging push notifications.
+  - **`workers/`**
+    - `dispatchWorker.ts`: Processes requirement dispatching, queries nearby online matching workers via PostGIS, handles waves, sends FCM notifications and Socket.IO events, and schedules wave timeouts.
+    - `timeoutWorker.ts`: Handles dispatch timeouts by transitioning waves to exhausted, and statelessly queuing the next wave at the proper offset if workers are still available.
   - **`type/`**
     - `api_req.type.ts`: Defines TypeScript interfaces/types for request payloads.
     - `api_res.types.ts`: Defines TypeScript interfaces/types for API responses.
   - **`utils/`**
-    - `authUtils.ts`: Helper utilities for authentication.
-  - `server.ts`: Entry point of the Express server.
+    - `authUtils.ts`: Helper utilities for authentication, OTP generation, and hashing.
+  - `server.ts`: Entry point of the Express server, Socket.IO setup, and background worker instantiation.
   - `test-prisma.ts`: A small testing script to verify Prisma integration.
 - **`prisma/`**
   - `schema.prisma`: The database design schema definition file.
@@ -253,6 +258,8 @@ Tracks waves generated during job dispatch workflows.
     *   `@supabase/server` (v1.1.0) - Supabase server utility helper.
     *   `@supabase/supabase-js` (v2.108.2) - Supabase JS client.
     *   `@upstash/redis` (v1.38.0) - Serverless Redis client.
+    *   `bullmq` - Redis-backed job queues and background workers.
+    *   `socket.io` - Real-time bidirectional event-based communication.
     *   `jsonwebtoken` & `bcrypt` - User authentication and hashing utilities.
     *   `zod` (v4.4.3) & `@asteasolutions/zod-to-openapi` (v8.5.0) - Input validation and OpenAPI documentation integration.
     *   `swagger-ui-express` (v5.0.1) - Serve Swagger OpenAPI documentation.
@@ -345,5 +352,9 @@ Tracks waves generated during job dispatch workflows.
 *   **Test Prisma Connection:**
     ```bash
     npx tsx src/test-prisma.ts
+    ```
+*   **Test Dispatch Queue and Wave Pipeline:**
+    ```bash
+    npx tsx src/test-dispatch.ts
     ```
 
