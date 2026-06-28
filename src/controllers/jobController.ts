@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { jobService } from "../services/job.services";
-import { CreateJobReq } from "../type/api_req.type";
+import { jobReqService } from "../services/jobReqServices";
+import { CreateJobReq, CreateJobRequirementReq } from "../type/api_req.type";
 
 const getCustomerId = (req: Request) => {
   // TODO: Replace with req.user.id once auth is integrated
@@ -71,3 +72,15 @@ export const getJobBookings = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const createJobRequirement = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { jobId } = req.params as any;
+    const payload: CreateJobRequirementReq = req.body;
+    const requirement = await jobReqService.createJobReq(jobId, payload);
+    res.status(201).json({ success: true, data: requirement });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

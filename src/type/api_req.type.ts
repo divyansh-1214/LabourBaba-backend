@@ -22,7 +22,8 @@ import {
   ConfirmBookingCompleteReqSchema,
   CancelBookingReqSchema,
   VerifyWorkerDocumentReqSchema,
-  SuspendWorkerReqSchema
+  SuspendWorkerReqSchema,
+  CreateJobRequirementReqSchema
 } from "../schemas";
 
 export type CreateWorkerReq = z.infer<typeof CreateWorkerReqSchema>;
@@ -48,6 +49,7 @@ export type ConfirmBookingCompleteReq = z.infer<typeof ConfirmBookingCompleteReq
 export type CancelBookingReq = z.infer<typeof CancelBookingReqSchema>;
 export type VerifyWorkerDocumentReq = z.infer<typeof VerifyWorkerDocumentReqSchema>;
 export type SuspendWorkerReq = z.infer<typeof SuspendWorkerReqSchema>;
+export type CreateJobRequirementReq = z.infer<typeof CreateJobRequirementReqSchema>;
 
 export enum JobStatus {
   OPEN = "OPEN",

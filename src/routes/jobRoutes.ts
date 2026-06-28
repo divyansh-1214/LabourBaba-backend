@@ -1,7 +1,7 @@
 import express from "express";
-import { createJob, getMyJobs, getJobDetail, cancelJob, getJobRequirements, getJobBookings } from "../controllers/jobController";
+import { createJob, getMyJobs, getJobDetail, cancelJob, getJobRequirements, getJobBookings, createJobRequirement } from "../controllers/jobController";
 import { validateBody } from "../middlewares/validationMiddleware";
-import { CreateJobReqSchema, JobSchema, JobRequirementSchema, BookingSchema } from "../schemas";
+import { CreateJobReqSchema, JobSchema, JobRequirementSchema, BookingSchema, CreateJobRequirementReqSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
 
@@ -60,11 +60,22 @@ registry.registerPath({
   responses: { 200: { description: "Success", content: { "application/json": { schema: z.object({ success: z.boolean(), data: z.array(BookingSchema) }) } } } }
 });
 
+registry.registerPath({
+  method: "post",
+  path: "/api/jobs/{jobId}/requirements",
+  summary: "Create a job requirement for an existing job",
+  tags: ["Jobs"],
+  parameters: [{ in: "path", name: "jobId", required: true, schema: { type: "string", format: "uuid" } }],
+  request: { body: { content: { "application/json": { schema: CreateJobRequirementReqSchema } } } },
+  responses: { 201: { description: "Created", content: { "application/json": { schema: z.object({ success: z.boolean(), data: JobRequirementSchema }) } } } }
+});
+
 router.post("/", validateBody(CreateJobReqSchema), createJob);
 router.get("/", getMyJobs);
 router.get("/:jobId", getJobDetail);
 router.patch("/:jobId/cancel", cancelJob);
 router.get("/:jobId/requirements", getJobRequirements);
+router.post("/:jobId/requirements", validateBody(CreateJobRequirementReqSchema), createJobRequirement);
 router.get("/:jobId/bookings", getJobBookings);
 
 export default router;

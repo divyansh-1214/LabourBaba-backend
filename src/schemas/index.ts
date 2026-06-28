@@ -322,3 +322,11 @@ export const WorkerLocationSchema = z.object({
 export const SuspendWorkerReqSchema = z.object({
   reason: z.string().min(1, "Suspension reason is required"),
 }).openapi("SuspendWorkerReq");
+
+export const CreateJobRequirementReqSchema = z.object({
+  skill_type: z.string().min(1, "Skill type is required").openapi({ example: "Plumber" }),
+  worker_count_needed: z.number().int().positive().openapi({ example: 2 }),
+  rate_per_day: z.number().int().positive().optional().openapi({ example: 500 }),
+  wave_size: z.number().int().positive().optional().openapi({ example: 10 }),
+}).openapi("CreateJobRequirementReq");
+
