@@ -3,6 +3,7 @@ import { getIncoming, acceptJob, declineJob, getWaves } from "../controllers/dis
 import { registry } from "../config/swagger";
 import { z } from "zod";
 import { JobDispatchSchema, BookingSchema } from "../schemas";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
@@ -41,9 +42,9 @@ registry.registerPath({
   responses: { 200: { description: "Success" } }
 });
 
-router.get("/incoming", getIncoming);
-router.post("/:requirementId/accept", acceptJob);
-router.post("/:requirementId/decline", declineJob);
-router.get("/:requirementId/waves", getWaves);
+router.get("/incoming", authenticateJWT, getIncoming);
+router.post("/:requirementId/accept", authenticateJWT, acceptJob);
+router.post("/:requirementId/decline", authenticateJWT, declineJob);
+router.get("/:requirementId/waves", authenticateJWT, getWaves);
 
 export default router;

@@ -134,10 +134,16 @@ export const CreateCustomerReqSchema = z.object({
 export const CreateWorkerReqSchema = z.object({
   skill_category_id: z.string().uuid("Invalid Skill Category UUID"),
   phone: z.string().min(10, "Phone must be at least 10 digits").openapi({ example: "+919876543211" }),
+  password: z.string().min(6, "Password must be at least 6 characters").openapi({ example: "mysecurepassword" }),
   skill_type: z.string().min(1, "Skill type is required").openapi({ example: "Plumber" }),
   aadhaar_last4: z.string().length(4, "Aadhaar must be exactly 4 digits").optional(),
   device_token: z.string().optional(),
 }).openapi("CreateWorkerReq");
+
+export const LoginWorkerReqSchema = z.object({
+  phone: z.string().min(10, "Phone must be at least 10 digits").openapi({ example: "+919876543211" }),
+  password: z.string().min(1, "Password is required").openapi({ example: "mysecurepassword" }),
+}).openapi("LoginWorkerReq");
 
 export const CreateJobReqSchema = z.object({
   customer_id: z.string().uuid("Invalid customer UUID"),

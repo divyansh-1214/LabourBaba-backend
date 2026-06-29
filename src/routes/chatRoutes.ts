@@ -3,6 +3,7 @@ import { getMessages, sendMessage } from "../controllers/chatController";
 import { registry } from "../config/swagger";
 import { z } from "zod";
 import { MessageSchema } from "../schemas";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ registry.registerPath({
   responses: { 201: { description: "Created", content: { "application/json": { schema: z.object({ success: z.boolean(), data: MessageSchema }) } } } }
 });
 
-router.get("/:bookingId/messages", getMessages);
-router.post("/:bookingId/messages", sendMessage);
+router.get("/:bookingId/messages", authenticateJWT, getMessages);
+router.post("/:bookingId/messages", authenticateJWT, sendMessage);
 
 export default router;

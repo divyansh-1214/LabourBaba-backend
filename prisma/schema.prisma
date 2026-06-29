@@ -20,6 +20,7 @@ model Worker {
   device_token        String?
   location_geo        Unsupported("geography")?
   deleted_at          DateTime?                 @db.Timestamptz(6)
+  password            String
   booking             booking[]
   conversation        conversation[]
   job_dispatch        job_dispatch[]

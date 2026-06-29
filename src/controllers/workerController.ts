@@ -1,14 +1,48 @@
 import { Request, Response } from "express";
 import { workerService } from "../services/workerServices";
-import { CreateWorkerReq, UpdateWorkerProfileReq, UpdateWorkerLocationReq, UpdateWorkerOnlineStatusReq, UploadWorkerDocumentReq } from "../type/api_req.type";
+import { CreateWorkerReq, LoginWorkerReq, UpdateWorkerProfileReq, UpdateWorkerLocationReq, UpdateWorkerOnlineStatusReq, UploadWorkerDocumentReq } from "../type/api_req.type";
+import { AuthenticatedRequest } from "../middlewares/authMiddleware";
+import { comparePassword, generateToken } from "../utils/authUtils";
+import prisma from "../config/prisma";
 
-// We extract workerId from the JWT token (mocked as coming from req.user or hardcoded for now)
 const getWorkerId = (req: Request) => {
-  // TODO: Replace with req.user.id once auth middleware is integrated
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return null;
-  // Temporary mock decoding for demo
-  return "b2a6543b-2403-469b-8a8b-302a24d081f9"; 
+  return (req as AuthenticatedRequest).user?.id || null;
+};
+
+export const loginWorker = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { phone, password }: LoginWorkerReq = req.body;
+    const worker = await prisma.worker.findUnique({
+      where: { phone },
+    });
+    if (!worker) {
+      res.status(401).json({ success: false, message: "Invalid phone number or password" });
+      return;
+    }
+    const isPasswordValid = await comparePassword(password, worker.password);
+    if (!isPasswordValid) {
+      res.status(401).json({ success: false, message: "Invalid phone number or password" });
+      return;
+    }
+    const token = generateToken({
+      id: worker.id,
+      phone: worker.phone,
+      role: "worker",
+    });
+    res.status(200).json({
+      success: true,
+      message: "Worker logged in successfully",
+      data: {
+        id: worker.id,
+        phone: worker.phone,
+        skill_type: worker.skill_type,
+        verification_status: worker.verification_status,
+      },
+      token,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const registerWorker = async (req: Request, res: Response): Promise<void> => {

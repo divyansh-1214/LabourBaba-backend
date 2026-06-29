@@ -40,7 +40,8 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
 
 export const getMyJobs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const customerId = await getCustomerId(req);
+    const customerId = String(req.params.customer_id);
+    console.log(customerId)
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const jobs = await jobService.getJobsByCustomer(customerId);
     res.status(200).json({ success: true, data: jobs });

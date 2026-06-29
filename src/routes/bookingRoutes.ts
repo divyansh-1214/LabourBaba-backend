@@ -4,6 +4,7 @@ import { validateBody } from "../middlewares/validationMiddleware";
 import { ConfirmBookingCompleteReqSchema, CancelBookingReqSchema, BookingSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
@@ -64,11 +65,11 @@ registry.registerPath({
   responses: { 200: { description: "Success" } }
 });
 
-router.get("/:bookingId", getBooking);
-router.post("/:bookingId/otp/verify", verifyOtp);
-router.post("/:bookingId/complete", completeBooking);
-router.post("/:bookingId/confirm-complete", validateBody(ConfirmBookingCompleteReqSchema), confirmComplete);
-router.post("/:bookingId/cancel", validateBody(CancelBookingReqSchema), cancelBooking);
-router.get("/:bookingId/location", getWorkerLocation);
+router.get("/:bookingId", authenticateJWT, getBooking);
+router.post("/:bookingId/otp/verify", authenticateJWT, verifyOtp);
+router.post("/:bookingId/complete", authenticateJWT, completeBooking);
+router.post("/:bookingId/confirm-complete", authenticateJWT, validateBody(ConfirmBookingCompleteReqSchema), confirmComplete);
+router.post("/:bookingId/cancel", authenticateJWT, validateBody(CancelBookingReqSchema), cancelBooking);
+router.get("/:bookingId/location", authenticateJWT, getWorkerLocation);
 
 export default router;

@@ -23,10 +23,12 @@ import {
   CancelBookingReqSchema,
   VerifyWorkerDocumentReqSchema,
   SuspendWorkerReqSchema,
-  CreateJobRequirementReqSchema
+  CreateJobRequirementReqSchema,
+  LoginWorkerReqSchema
 } from "../schemas";
 
 export type CreateWorkerReq = z.infer<typeof CreateWorkerReqSchema>;
+export type LoginWorkerReq = z.infer<typeof LoginWorkerReqSchema>;
 export type CreateCustomerReq = z.infer<typeof CreateCustomerReqSchema>;
 export type CreateJobReq = z.infer<typeof CreateJobReqSchema>;
 export type ApplyJobReq = z.infer<typeof ApplyJobReqSchema>;

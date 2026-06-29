@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import { chatService } from "../services/chatServices";
+import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 
 const getUserId = (req: Request) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return null;
-  return "b2a6543b-2403-469b-8a8b-302a24d081f9"; // mock
+  return (req as AuthenticatedRequest).user?.id || null;
 };
 
 export const getMessages = async (req: Request, res: Response): Promise<void> => {

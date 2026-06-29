@@ -1,12 +1,15 @@
 import prisma from "../config/prisma";
 import { CreateWorkerReq, UpdateWorkerProfileReq, UpdateWorkerLocationReq, UpdateWorkerOnlineStatusReq, UploadWorkerDocumentReq } from "../type/api_req.type";
+import { hashPassword } from "../utils/authUtils";
 
 export const workerService = {
   async register(payload: CreateWorkerReq) {
+    const hashedPassword = await hashPassword(payload.password);
     return await prisma.worker.create({
       data: {
         skill_category_id: payload.skill_category_id,
         phone: payload.phone,
+        password: hashedPassword,
         skill_type: payload.skill_type,
         aadhaar_last4: payload.aadhaar_last4,
         device_token: payload.device_token,

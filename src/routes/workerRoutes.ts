@@ -1,7 +1,8 @@
 import express from "express";
-import { registerWorker, getMe, updateMe, updateLocation, updateOnline, uploadDocuments, getDocuments, getAnalytics, getBookings, getEarnings } from "../controllers/workerController";
+import { registerWorker, loginWorker, getMe, updateMe, updateLocation, updateOnline, uploadDocuments, getDocuments, getAnalytics, getBookings, getEarnings } from "../controllers/workerController";
 import { validateBody } from "../middlewares/validationMiddleware";
-import { CreateWorkerReqSchema, UpdateWorkerProfileReqSchema, UpdateWorkerLocationReqSchema, UpdateWorkerOnlineStatusReqSchema, UploadWorkerDocumentReqSchema, WorkerSchema, WorkerLocationSchema, WorkerDocumentSchema, WorkerAnalyticsSchema, BookingSchema } from "../schemas";
+import { authenticateJWT } from "../middlewares/authMiddleware";
+import { CreateWorkerReqSchema, LoginWorkerReqSchema, UpdateWorkerProfileReqSchema, UpdateWorkerLocationReqSchema, UpdateWorkerOnlineStatusReqSchema, UploadWorkerDocumentReqSchema, WorkerSchema, WorkerLocationSchema, WorkerDocumentSchema, WorkerAnalyticsSchema, BookingSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
 
@@ -14,6 +15,34 @@ registry.registerPath({
   tags: ["Workers"],
   request: { body: { content: { "application/json": { schema: CreateWorkerReqSchema } } } },
   responses: { 201: { description: "Created", content: { "application/json": { schema: z.object({ success: z.boolean(), data: WorkerSchema }) } } } }
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/workers/login",
+  summary: "Worker login with phone and password",
+  tags: ["Workers"],
+  request: { body: { content: { "application/json": { schema: LoginWorkerReqSchema } } } },
+  responses: {
+    200: {
+      description: "Success",
+      content: {
+        "application/json": {
+          schema: z.object({
+            success: z.boolean(),
+            message: z.string(),
+            data: z.object({
+              id: z.string().uuid(),
+              phone: z.string(),
+              skill_type: z.string(),
+              verification_status: z.string().nullable().optional(),
+            }),
+            token: z.string(),
+          }),
+        },
+      },
+    },
+  },
 });
 
 registry.registerPath({
@@ -93,14 +122,15 @@ registry.registerPath({
 });
 
 router.post("/registerWorker", validateBody(CreateWorkerReqSchema), registerWorker);
-router.get("/me", getMe);
-router.patch("/me", validateBody(UpdateWorkerProfileReqSchema), updateMe);
-router.patch("/me/location", validateBody(UpdateWorkerLocationReqSchema), updateLocation);
-router.patch("/me/online", validateBody(UpdateWorkerOnlineStatusReqSchema), updateOnline);
-router.post("/me/documents", validateBody(UploadWorkerDocumentReqSchema), uploadDocuments);
-router.get("/me/documents", getDocuments);
-router.get("/me/analytics", getAnalytics);
-router.get("/me/bookings", getBookings);
-router.get("/me/earnings", getEarnings);
+router.post("/login", validateBody(LoginWorkerReqSchema), loginWorker);
+router.get("/me", authenticateJWT, getMe);
+router.patch("/me", authenticateJWT, validateBody(UpdateWorkerProfileReqSchema), updateMe);
+router.patch("/me/location", authenticateJWT, validateBody(UpdateWorkerLocationReqSchema), updateLocation);
+router.patch("/me/online", authenticateJWT, validateBody(UpdateWorkerOnlineStatusReqSchema), updateOnline);
+router.post("/me/documents", authenticateJWT, validateBody(UploadWorkerDocumentReqSchema), uploadDocuments);
+router.get("/me/documents", authenticateJWT, getDocuments);
+router.get("/me/analytics", authenticateJWT, getAnalytics);
+router.get("/me/bookings", authenticateJWT, getBookings);
+router.get("/me/earnings", authenticateJWT, getEarnings);
 
 export default router;

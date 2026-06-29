@@ -1,12 +1,10 @@
 import { Request, Response } from "express";
 import { bookingService } from "../services/bookingServices";
 import { ConfirmBookingCompleteReq, CancelBookingReq } from "../type/api_req.type";
+import { AuthenticatedRequest } from "../middlewares/authMiddleware";
 
 const getUserId = (req: Request) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return null;
-  // Mock either worker or customer ID based on token decoding
-  return "b2a6543b-2403-469b-8a8b-302a24d081f9"; 
+  return (req as AuthenticatedRequest).user?.id || null;
 };
 
 export const getBooking = async (req: Request, res: Response): Promise<void> => {
