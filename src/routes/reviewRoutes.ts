@@ -1,6 +1,7 @@
 import express from "express";
 import { createReview, getWorkerReviews, getBookingReview } from "../controllers/reviewController";
 import { validateBody } from "../middlewares/validationMiddleware";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 import { CreateReviewReqSchema, ReviewSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
@@ -35,8 +36,8 @@ registry.registerPath({
   responses: { 200: { description: "Success", content: { "application/json": { schema: z.object({ success: z.boolean(), data: ReviewSchema }) } } } }
 });
 
-router.post("/:bookingId", validateBody(CreateReviewReqSchema), createReview);
-router.get("/worker/:workerId", getWorkerReviews);
-router.get("/:bookingId", getBookingReview);
+router.post("/:bookingId", authenticateJWT, validateBody(CreateReviewReqSchema), createReview);
+router.get("/worker/:workerId", authenticateJWT, getWorkerReviews);
+router.get("/:bookingId", authenticateJWT, getBookingReview);
 
 export default router;

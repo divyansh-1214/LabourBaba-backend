@@ -3,8 +3,8 @@ import { adminService } from "../services/adminServices";
 import { VerifyWorkerDocumentReq, SuspendWorkerReq } from "../type/api_req.type";
 
 const isAdmin = (req: Request) => {
-  // Mock admin check
-  return true;
+  // Verify that the request has been authenticated via JWT
+  return !!(req as any).user;
 };
 
 export const getWorkers = async (req: Request, res: Response): Promise<void> => {

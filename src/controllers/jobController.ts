@@ -19,13 +19,17 @@ const getCustomerId = async (req: Request): Promise<string | null> => {
       return decoded.id;
     }
   }
-  return "there is not auth tocken";
+  return null;
 };
 
 // this function will connect will create the job and its job requirement it self
 export const createJob = async (req: Request, res: Response): Promise<void> => {
   try {
     const payload: CreateJobReq = req.body;
+    const authCustomerId = (req as any).user?.id;
+    if (authCustomerId) {
+      payload.customer_id = authCustomerId;
+    }
     if (!payload.customer_id) {
       res.status(400).json({ success: false, message: "Customer ID is required" });
       return;
@@ -39,8 +43,11 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
 
 export const getMyJobs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const customerId = String(req.query.customer_id);
-    if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const customerId = (req as any).user?.id || String(req.query.customer_id);
+    if (!customerId || customerId === "undefined" || customerId === "null") { 
+      res.status(401).json({ success: false, message: "Unauthorized" }); 
+      return; 
+    }
     const jobs = await jobService.getJobsByCustomer(customerId);
     res.status(200).json({ success: true, data: jobs });
   } catch (error: any) {

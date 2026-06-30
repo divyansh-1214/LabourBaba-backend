@@ -2,6 +2,7 @@ import express from "express";
 import { UpdateWorkerLocationReqSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 import { addLocation } from "../controllers/worker_location.controller";
 
 // Register POST /api/worker_location/add
@@ -38,5 +39,5 @@ registry.registerPath({
 });
 
 const workerLocationRoute = express.Router();
-workerLocationRoute.post("/add", addLocation)
+workerLocationRoute.post("/add", authenticateJWT, addLocation)
 export default workerLocationRoute;

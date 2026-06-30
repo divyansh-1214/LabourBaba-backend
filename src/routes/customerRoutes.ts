@@ -2,6 +2,7 @@ import express from "express";
 import { getClient, postClient } from "../controllers/customerController";
 import { signupCustomer, loginCustomer } from "../controllers/customerAuthController";
 import { validateBody } from "../middlewares/validationMiddleware";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 import { CreateCustomerReqSchema, CustomerSchema, SignupCustomerReqSchema, LoginCustomerReqSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
@@ -148,8 +149,8 @@ registry.registerPath({
 });
 
 // Express route mappings
-clientRoute.get("/", getClient);
-clientRoute.post("/add", validateBody(CreateCustomerReqSchema), postClient);
+clientRoute.get("/", authenticateJWT, getClient);
+clientRoute.post("/add", authenticateJWT, validateBody(CreateCustomerReqSchema), postClient);
 clientRoute.post("/signup", validateBody(SignupCustomerReqSchema), signupCustomer);
 clientRoute.post("/login", validateBody(LoginCustomerReqSchema), loginCustomer);
 

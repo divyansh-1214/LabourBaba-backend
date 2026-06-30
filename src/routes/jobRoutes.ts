@@ -1,6 +1,7 @@
 import express from "express";
 import { createJob, getMyJobs, getJobDetail, cancelJob, getJobRequirements, getJobBookings, createJobRequirement } from "../controllers/jobController";
 import { validateBody } from "../middlewares/validationMiddleware";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 import { CreateJobReqSchema, JobSchema, JobRequirementSchema, BookingSchema, CreateJobRequirementReqSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
@@ -70,12 +71,12 @@ registry.registerPath({
   responses: { 201: { description: "Created", content: { "application/json": { schema: z.object({ success: z.boolean(), data: JobRequirementSchema }) } } } }
 });
 
-router.post("/", validateBody(CreateJobReqSchema), createJob);
-router.get("/", getMyJobs);
-router.get("/:jobId", getJobDetail);
-router.patch("/:jobId/cancel", cancelJob);
-router.get("/:jobId/requirements", getJobRequirements);
-router.post("/:jobId/requirements", validateBody(CreateJobRequirementReqSchema), createJobRequirement);
-router.get("/:jobId/bookings", getJobBookings);
+router.post("/", authenticateJWT, validateBody(CreateJobReqSchema), createJob);
+router.get("/", authenticateJWT, getMyJobs);
+router.get("/:jobId", authenticateJWT, getJobDetail);
+router.patch("/:jobId/cancel", authenticateJWT, cancelJob);
+router.get("/:jobId/requirements", authenticateJWT, getJobRequirements);
+router.post("/:jobId/requirements", authenticateJWT, validateBody(CreateJobRequirementReqSchema), createJobRequirement);
+router.get("/:jobId/bookings", authenticateJWT, getJobBookings);
 
 export default router;

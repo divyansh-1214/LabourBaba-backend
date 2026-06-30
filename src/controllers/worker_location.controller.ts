@@ -3,7 +3,16 @@ import prisma from "../config/prisma";
 
 export const addLocation = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { worker_id, latitude, longitude } = req.body;
+    const worker_id = (req as any).user?.id || req.body.worker_id;
+    const { latitude, longitude } = req.body;
+
+    if (!worker_id) {
+      res.status(400).json({
+        success: false,
+        message: "Worker ID is required",
+      });
+      return;
+    }
 
     // Create worker location record (history)
     const workerLocation = await prisma.worker_location.create({

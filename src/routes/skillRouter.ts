@@ -2,6 +2,7 @@ import express from "express";
 import { getSkills, addSkills } from "../controllers/skillControllers"
 import { SkillCategorySchema, SkillCategorySchemaReqSchema } from "../schemas";
 import { validateBody } from "../middlewares/validationMiddleware";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 import { registry } from "../config/swagger";
 import { z } from "zod";
 
@@ -66,6 +67,6 @@ registry.registerPath({
 
 const skillRoute = express.Router();
 skillRoute.get("/", getSkills)
-skillRoute.post("/add", validateBody(SkillCategorySchemaReqSchema), addSkills)
+skillRoute.post("/add", authenticateJWT, validateBody(SkillCategorySchemaReqSchema), addSkills)
 
 export default skillRoute

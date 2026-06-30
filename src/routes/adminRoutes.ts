@@ -1,6 +1,7 @@
 import express from "express";
 import { getWorkers, verifyWorker, getAllJobs, getFlaggedWorkers, suspendWorker } from "../controllers/adminController";
 import { validateBody } from "../middlewares/validationMiddleware";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 import { VerifyWorkerDocumentReqSchema, SuspendWorkerReqSchema, WorkerSchema, JobSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
@@ -51,10 +52,10 @@ registry.registerPath({
   responses: { 200: { description: "Success", content: { "application/json": { schema: z.object({ success: z.boolean(), data: WorkerSchema }) } } } }
 });
 
-router.get("/workers", getWorkers);
-router.patch("/workers/:id/verify", validateBody(VerifyWorkerDocumentReqSchema), verifyWorker);
-router.get("/jobs", getAllJobs);
-router.get("/flagged", getFlaggedWorkers);
-router.post("/workers/:id/suspend", validateBody(SuspendWorkerReqSchema), suspendWorker);
+router.get("/workers", authenticateJWT, getWorkers);
+router.patch("/workers/:id/verify", authenticateJWT, validateBody(VerifyWorkerDocumentReqSchema), verifyWorker);
+router.get("/jobs", authenticateJWT, getAllJobs);
+router.get("/flagged", authenticateJWT, getFlaggedWorkers);
+router.post("/workers/:id/suspend", authenticateJWT, validateBody(SuspendWorkerReqSchema), suspendWorker);
 
 export default router;

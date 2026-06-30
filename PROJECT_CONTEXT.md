@@ -68,7 +68,7 @@ The project has the following directory layout under the source root (`src/`):
     - `reviewServices.ts`: Database reviews mapping.
     - `chatServices.ts`: Conversation generation and persistent chat tracking.
     - `adminServices.ts`: Platform monitoring, flagged worker logic, and document verifications.
-    - `fcm.ts`: Stub service for sending Firebase Cloud Messaging push notifications.
+    - `fcm.ts`: FCM notification service using `firebase-admin`. Configured via a local Service Account JSON (ignored by git), `FIREBASE_SERVICE_ACCOUNT_JSON` environment variable, or Application Default Credentials, with fallback to stub mode.
   - **`workers/`**
     - `dispatchWorker.ts`: Processes requirement dispatching, queries nearby online matching workers via PostGIS, handles waves, sends FCM notifications and Socket.IO events, and schedules wave timeouts.
     - `timeoutWorker.ts`: Handles dispatch timeouts by transitioning waves to exhausted, and statelessly queuing the next wave at the proper offset if workers are still available.
@@ -100,6 +100,7 @@ Represents the service providers (workers) on the platform.
 *   `skill_category_id`: UUID (foreign key referencing `skill_category`, required)
 *   `phone`: String (unique VarChar(15), required)
 *   `password`: String (required, hashed)
+*   `name`: String (required)
 *   `skill_type`: String (VarChar(100), required)
 *   `worker_score`: Decimal (optional, default 5.0)
 *   `is_online`: Boolean (optional, default false)
@@ -238,12 +239,10 @@ Documents uploaded by workers for verification.
 *   `status`: String (VarChar(30), optional)
 
 #### `worker_location`
-Real-time or last known coordinates of a worker.
+Historical coordinates (location logs) of a worker.
 *   `id`: UUID, Primary Key
-*   `worker_id`: UUID (foreign key referencing `Worker`, required, unique)
-*   `latitude`: Float (optional)
-*   `longitude`: Float (optional)
-*   `location`: String (optional)
+*   `worker_id`: UUID (foreign key referencing `Worker`, required)
+*   `location_geo`: geography (optional)
 *   `updated_at`: DateTime (optional, default now())
 
 #### `dispatch_wave`
@@ -272,6 +271,8 @@ Tracks waves generated during job dispatch workflows.
     *   `@supabase/supabase-js` (v2.108.2) - Supabase JS client.
     *   `@upstash/redis` (v1.38.0) - Serverless Redis client.
     *   `bullmq` - Redis-backed job queues and background workers.
+    *   `@bull-board/api` & `@bull-board/express` (v8.0.2) - BullMQ visualization dashboard.
+    *   `firebase-admin` (v14.1.0) - Firebase Cloud Messaging client SDK.
     *   `socket.io` - Real-time bidirectional event-based communication.
     *   `jsonwebtoken` & `bcrypt` - User authentication and hashing utilities.
     *   `zod` (v4.4.3) & `@asteasolutions/zod-to-openapi` (v8.5.0) - Input validation and OpenAPI documentation integration.
@@ -307,7 +308,7 @@ Tracks waves generated during job dispatch workflows.
     *   **GET** `/api/workers/me/earnings` (Requires JWT)
 4.  **Jobs** (`/api/jobs`)
     *   **POST** `/api/jobs`
-    *   **GET** `/api/jobs`
+    *   **GET** `/api/jobs` (Retrieve customer jobs, filters by `customer_id` query param)
     *   **GET** `/api/jobs/:jobId`
     *   **PATCH** `/api/jobs/:jobId/cancel`
     *   **GET** `/api/jobs/:jobId/requirements`
@@ -354,6 +355,8 @@ Tracks waves generated during job dispatch workflows.
     *   **POST** `/api/worker_location/add`
 14. **API Documentation**
     *   **GET** `/api-docs` (Swagger UI HTML)
+15. **Queue Visualization Dashboard**
+    *   **GET** `/admin/queues` (Bull-Board queue dashboard UI)
 
 ---
 
@@ -399,55 +402,54 @@ The service uses three helper functions to manage coordinate conversions:
 
 ### 2. Location Update & Storage Patterns
 
+Since Prisma Client does not natively map database geography (`Unsupported("geography")`) types, the application performs a dual-step write pattern where it first writes the main record, and then uses raw SQL updates (`$executeRaw`) to assign the coordinates to the geography column via PostGIS spatial functions (`ST_SetSRID` and `ST_MakePoint`).
+
 **Pattern A: Job Location Creation** (`src/services/job.services.ts`)
 - When creating a job with latitude/longitude:
-  1. Convert coordinates via `convertToGeography(lon, lat)`
-  2. Store WKT POINT string directly in `location_geo` field
-  3. Also store raw `latitude` and `longitude` fields for direct queries
-  4. Example:
+  1. Create the `job` record with standard fields (`latitude`, `longitude`, `location`, etc.) inside a transaction.
+  2. Immediately run a raw SQL query inside the transaction to update the geography column:
      ```typescript
-     const locationGeo = convertToGeography(payload.longitude, payload.latitude);
-     await tx.job.create({
-       data: {
-         customer_id: payload.customer_id,
-         latitude: payload.latitude,
-         longitude: payload.longitude,
-         location_geo: locationGeo,  // e.g., "POINT(72.8777 19.0760)"
-         status: 'OPEN'
-       }
-     });
+     await tx.$executeRaw`
+       UPDATE job
+       SET location_geo = ST_SetSRID(
+         ST_MakePoint(${payload.longitude}, ${payload.latitude}),
+         4326
+       )::geography
+       WHERE id = ${job.id}::uuid;
+     `;
      ```
 
-**Pattern B: Worker Location Upsert** (`src/services/workerServices.ts`)
-- When updating worker location:
-  1. Convert coordinates via `convertToGeography(lon, lat)`
-  2. Upsert `worker_location` record with latitude/longitude/location fields
-  3. Update corresponding `Worker.location_geo` field with WKT POINT
-  4. Ensures both raw coordinates and geography are synchronized
-  5. Example:
+**Pattern B: Worker Location History Update** (`src/services/workerServices.ts`)
+- In `workerService.updateLocation`:
+  1. Create a `worker_location` tracking record (history) with the `worker_id`.
+  2. Run raw SQL to update the record's `location_geo` with coordinates:
      ```typescript
-     const locationGeo = convertToGeography(payload.longitude, payload.latitude);
-     
-     // Upsert worker_location table
-     const workerLocation = await prisma.worker_location.upsert({
-       where: { worker_id: workerId },
-       update: { latitude, longitude, location, updated_at: new Date() },
-       create: { worker_id, latitude, longitude, location }
-     });
-     
-     // Update Worker.location_geo
-     await prisma.worker.update({
-       where: { id: workerId },
-       data: { location_geo: locationGeo }
-     });
+     await prisma.$executeRaw`
+       UPDATE worker_location
+       SET location_geo = ST_SetSRID(
+         ST_MakePoint(${payload.longitude}, ${payload.latitude}),
+         4326
+       )::geography
+       WHERE id = ${worker_location.id}::uuid;
+     `;
      ```
 
-**Pattern C: Worker Location Controller Upsert** (`src/controllers/worker_location.controller.ts`)
-- External API endpoint `/api/worker_location/add`:
-  1. Accepts `worker_id`, `latitude`, `longitude`, `location` in request body
-  2. Converts to geography using `convertToGeography()`
-  3. Upserts both `worker_location` and `Worker.location_geo` fields
-  4. Returns updated worker location record
+**Pattern C: Worker Location Controller Update & Sync** (`src/controllers/worker_location.controller.ts`)
+- Endpoint `POST /api/worker_location/add` handles location updates:
+  1. Accepts `worker_id`, `latitude`, `longitude` in the request body.
+  2. Creates a `worker_location` record history log.
+  3. Updates the `location_geo` on the newly created `worker_location` record via raw SQL.
+  4. Synchronizes the worker's current location by updating `location_geo` directly on the `worker` record via raw SQL:
+     ```typescript
+     await prisma.$executeRaw`
+       UPDATE worker
+       SET location_geo = ST_SetSRID(
+         ST_MakePoint(${longitude}, ${latitude}),
+         4326
+       )::geography
+       WHERE id = ${worker_id}::uuid;
+     `;
+     ```
 
 ### 3. Database Indexes
 Two GIST indexes optimize spatial queries:
@@ -459,38 +461,26 @@ Two GIST indexes optimize spatial queries:
 
 ## 8. Recent Architecture Changes (Latest Updates)
 
-### A. Location Utilities Refactor (`src/utils/locationUtils.ts`)
-Created a comprehensive location utility module with three core functions:
-- **`convertToGeography(lon, lat)`**: Converts coordinates to PostGIS WKT `POINT(lon lat)` format with validation
-- **`convertToGeoJSON(lon, lat)`**: Returns GeoJSON Point format for API responses
-- **`parseGeography(geography)`**: Parses WKT strings back to coordinates
+### A. Worker Profile `name` Field Integration
+- **Database Schema**: Added the `name` string field to the `Worker` model in `schema.prisma`.
+- **Validation Schemas**: Updated `WorkerSchema` and `CreateWorkerReqSchema` in `src/schemas/index.ts` to require `name`.
+- **Controllers & Services**: Integrated `name` parameter in `workerService.register()` and routes (`POST /api/workers/registerWorker`) to save and return worker names.
+- **Tests & Mocks**: Updated mock worker models in test suites (`tests/workerAuth.test.ts` and `src/test-dispatch.ts`) to include worker names.
 
-### B. Worker Location Controller Enhancement (`src/controllers/worker_location.controller.ts`)
-- **Before**: Created `worker_location` with invalid `Number()` cast on geography
-- **After**: 
-  - Uses `upsert` pattern instead of `create` to handle updates
-  - Properly converts coordinates using `convertToGeography()`
-  - Updates both `worker_location` table AND `Worker.location_geo` field
-  - Includes all required fields: `latitude`, `longitude`, `location`, `updated_at`
+### B. BullMQ Queue Dashboard (Bull Board) Connection
+- **Express Integration**: Connected **Bull Board** queue dashboard visualization at the path `/admin/queues` using `@bull-board/api` and `@bull-board/express` adapters.
+- **Queue Monitoring**: Placed `dispatchQueue` and `timeoutQueue` under monitoring to visualize waves, jobs, and timeouts.
 
-### C. Worker Services Fix (`src/services/workerServices.ts`)
-- **Method**: `updateLocation(workerId, payload)`
-- **Changes**:
-  - Fixed NaN error from `Number()` casting
-  - Implemented dual-write pattern: updates `worker_location` + `Worker.location_geo`
-  - Uses `upsert` for idempotent location updates
-  - Ensures coordinate validation via `convertToGeography()`
+### C. Firebase Cloud Messaging (FCM) Integration
+- **SDK Upgrade**: Swapped out the old console-log stub for a complete `firebase-admin` integration in `src/services/fcm.ts`.
+- **Credentials Config**: Configured it to support initialization via:
+  1. A local Service Account JSON credential file (`labourbaba-*-firebase-adminsdk-*.json`) at the root (ignored by git).
+  2. The `FIREBASE_SERVICE_ACCOUNT_JSON` environment variable.
+  3. Falling back to Application Default Credentials (ADC), and falling back to debug-logging stub mode on failure.
 
-### D. Job Services Enhancement (`src/services/job.services.ts`)
-- **Method**: `createJob(payload)`
-- **Changes**:
-  - Now converts coordinates to geography when creating jobs
-  - Stores WKT POINT string in `location_geo` field
-  - Maintains backward compatibility with raw `latitude`/`longitude` fields
-  - Improves spatial query performance via PostGIS indexes
+### D. Location Updates and PostGIS Geography Storage Refactor
+- **Direct PostGIS Querying**: Since Prisma Client doesn't support writing unsupported columns directly, updated `jobService.createJob`, `workerService.updateLocation`, and `addLocation` controller to use transaction/raw-sql `$executeRaw` to insert/update coordinates using `ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography`.
+- **Synchronization**: The controller endpoint `POST /api/worker_location/add` now updates the history trail in `worker_location` and synchronizes the current location by updating `Worker.location_geo` using raw SQL.
 
-### E. API Endpoint Updates
-- **`POST /api/worker_location/add`**: 
-  - Request: `{ worker_id, latitude, longitude, location? }`
-  - Response: Updated `worker_location` record with proper validation
-  - Converts coordinates to PostGIS format transparently
+### E. API Endpoint Fixes
+- **Customer Job Retrieval**: Fixed `getMyJobs` (`GET /api/jobs`) to correctly retrieve `customer_id` from the request query parameter (`req.query.customer_id`) rather than route parameters (`req.params.customer_id`).

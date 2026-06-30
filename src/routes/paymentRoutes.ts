@@ -1,6 +1,7 @@
 import express from "express";
 import { createOrder, handleWebhook, getPaymentStatus, refundPayment } from "../controllers/paymentController";
 import { validateBody } from "../middlewares/validationMiddleware";
+import { authenticateJWT } from "../middlewares/authMiddleware";
 import { CreatePaymentReqSchema, PaymentSchema } from "../schemas";
 import { registry } from "../config/swagger";
 import { z } from "zod";
@@ -43,9 +44,9 @@ registry.registerPath({
   responses: { 200: { description: "Success" } }
 });
 
-router.post("/:bookingId/create-order", validateBody(CreatePaymentReqSchema), createOrder);
+router.post("/:bookingId/create-order", authenticateJWT, validateBody(CreatePaymentReqSchema), createOrder);
 router.post("/webhook", handleWebhook);
-router.get("/:bookingId", getPaymentStatus);
-router.post("/:bookingId/refund", refundPayment);
+router.get("/:bookingId", authenticateJWT, getPaymentStatus);
+router.post("/:bookingId/refund", authenticateJWT, refundPayment);
 
 export default router;
