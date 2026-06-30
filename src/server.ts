@@ -18,6 +18,10 @@ import chatRoutes from './routes/chatRoutes';
 import adminRoutes from './routes/adminRoutes';
 import { setupSwagger } from './config/swagger';
 import workerLocationRoute from './routes/worker_location.routes';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import { dispatchQueue, timeoutQueue } from './config/bullmq';
 
 dotenv.config();
 
@@ -78,6 +82,18 @@ app.use('/api/admin', adminRoutes);
 
 // Setup Swagger UI
 setupSwagger(app);
+
+// Setup Bull Board Dashboard
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath('/admin/queues');
+createBullBoard({
+  queues: [
+    new BullMQAdapter(dispatchQueue),
+    new BullMQAdapter(timeoutQueue),
+  ],
+  serverAdapter,
+});
+app.use('/admin/queues', serverAdapter.getRouter());
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {

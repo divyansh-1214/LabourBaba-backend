@@ -22,6 +22,7 @@ describe("Worker Authentication API Tests", () => {
   describe("POST /api/workers/registerWorker", () => {
     it("should successfully register a worker and hash the password", async () => {
       const mockPayload = {
+        name: "Test Worker",
         skill_category_id: "c1b2c3d4-e5f6-4890-a234-56789abcdef0",
         phone: "+919999999999",
         password: "securepassword",
@@ -31,6 +32,7 @@ describe("Worker Authentication API Tests", () => {
 
       const mockCreatedWorker = {
         id: "worker-uuid",
+        name: mockPayload.name,
         skill_category_id: mockPayload.skill_category_id,
         phone: mockPayload.phone,
         skill_type: mockPayload.skill_type,
@@ -57,6 +59,7 @@ describe("Worker Authentication API Tests", () => {
 
     it("should return 400 validation error if password is too short", async () => {
       const mockPayload = {
+        name: "Test Worker",
         skill_category_id: "c1b2c3d4-e5f6-4890-a234-56789abcdef0",
         phone: "+919999999999",
         password: "123", // too short
@@ -79,6 +82,7 @@ describe("Worker Authentication API Tests", () => {
 
       const mockWorker = {
         id: "worker-uuid",
+        name: "Test Worker",
         phone: "+919999999999",
         password: hashedPassword,
         skill_type: "Plumber",
@@ -100,6 +104,7 @@ describe("Worker Authentication API Tests", () => {
       expect(res.body.data).toEqual({
         id: mockWorker.id,
         phone: mockWorker.phone,
+        name: mockWorker.name,
         skill_type: mockWorker.skill_type,
         verification_status: mockWorker.verification_status,
       });
@@ -111,6 +116,7 @@ describe("Worker Authentication API Tests", () => {
 
       const mockWorker = {
         id: "worker-uuid",
+        name: "Test Worker",
         phone: "+919999999999",
         password: hashedPassword,
         skill_type: "Plumber",

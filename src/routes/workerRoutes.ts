@@ -34,6 +34,7 @@ registry.registerPath({
             data: z.object({
               id: z.string().uuid(),
               phone: z.string(),
+              name: z.string(),
               skill_type: z.string(),
               verification_status: z.string().nullable().optional(),
             }),

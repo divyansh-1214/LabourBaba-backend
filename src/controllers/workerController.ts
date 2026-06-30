@@ -35,6 +35,7 @@ export const loginWorker = async (req: Request, res: Response): Promise<void> =>
       data: {
         id: worker.id,
         phone: worker.phone,
+        name: worker.name,
         skill_type: worker.skill_type,
         verification_status: worker.verification_status,
       },

@@ -40,6 +40,7 @@ export const WorkerSchema = z.object({
   id: z.string().uuid().openapi({ description: "Unique UUID of the worker" }),
   skill_category_id: z.string().uuid(),
   phone: z.string().openapi({ example: "+919876543211" }),
+  name: z.string().openapi({ example: "John Worker" }),
   skill_type: z.string().openapi({ example: "Plumbing" }),
   worker_score: z.number().nullable().optional().openapi({ example: 5.0 }),
   is_online: z.boolean().nullable().optional().openapi({ example: false }),
@@ -132,6 +133,7 @@ export const CreateCustomerReqSchema = z.object({
 }).openapi("CreateCustomerReq");
 
 export const CreateWorkerReqSchema = z.object({
+  name: z.string().min(1, "Name is required").openapi({ example: "John Worker" }),
   skill_category_id: z.string().uuid("Invalid Skill Category UUID"),
   phone: z.string().min(10, "Phone must be at least 10 digits").openapi({ example: "+919876543211" }),
   password: z.string().min(6, "Password must be at least 6 characters").openapi({ example: "mysecurepassword" }),

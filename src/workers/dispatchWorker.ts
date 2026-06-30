@@ -35,7 +35,7 @@ const dispatchWorker = new Worker<DispatchJobData>(
       where: { id: requirementId },
       include: { job: true },
     });
-
+    console.log("req", req)
     if (!req) {
       console.warn(`[dispatchWorker] Requirement ${requirementId} not found — skipping`);
       return;

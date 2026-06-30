@@ -34,6 +34,7 @@ async function testPipeline() {
   // Create a worker
   const worker1 = await prisma.worker.create({
     data: {
+      name: "Worker 1",
       skill_category_id: skillCategory.id,
       skill_type: "Plumbing",
       phone: `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`,
@@ -46,6 +47,7 @@ async function testPipeline() {
 
   const worker2 = await prisma.worker.create({
     data: {
+      name: "Worker 2",
       skill_category_id: skillCategory.id,
       skill_type: "Plumbing",
       phone: `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`,
