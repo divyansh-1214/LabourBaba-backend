@@ -71,7 +71,7 @@ The project has the following directory layout under the source root (`src/`):
     - `api_res.types.ts`: Defines TypeScript interfaces/types for API responses.
   - **`utils/`**
     - `authUtils.ts`: Helper utilities for authentication, OTP generation, and hashing.
-  - `server.ts`: Entry point of the Express server, Socket.IO setup, and background worker instantiation.
+  - `server.ts`: Entry point of the Express server with CORS configured to accept both `FRONT_END_URL` and `APP_URL` environments, Socket.IO setup, and background worker instantiation.
   - `test-prisma.ts`: A small testing script to verify Prisma integration.
 - **`prisma/`**
   - `schema.prisma`: The database design schema definition file.
@@ -89,6 +89,7 @@ Represents the service providers (workers) on the platform.
 *   `id`: UUID, Primary Key
 *   `skill_category_id`: UUID (foreign key referencing `skill_category`, required)
 *   `phone`: String (unique VarChar(15), required)
+*   `password`: String (required, hashed)
 *   `skill_type`: String (VarChar(100), required)
 *   `worker_score`: Decimal (optional, default 5.0)
 *   `is_online`: Boolean (optional, default false)
@@ -281,16 +282,17 @@ Tracks waves generated during job dispatch workflows.
     *   **POST** `/api/auth/refresh`
     *   **POST** `/api/auth/logout`
 3.  **Workers** (`/api/workers`)
-    *   **POST** `/api/workers/registerWorker`
-    *   **GET** `/api/workers/me`
-    *   **PATCH** `/api/workers/me`
-    *   **PATCH** `/api/workers/me/location`
-    *   **PATCH** `/api/workers/me/online`
-    *   **POST** `/api/workers/me/documents`
-    *   **GET** `/api/workers/me/documents`
-    *   **GET** `/api/workers/me/analytics`
-    *   **GET** `/api/workers/me/bookings`
-    *   **GET** `/api/workers/me/earnings`
+    *   **POST** `/api/workers/registerWorker` (Creates a worker profile, hashes password)
+    *   **POST** `/api/workers/login` (Authenticates worker by phone & password, returns JWT token)
+    *   **GET** `/api/workers/me` (Requires JWT)
+    *   **PATCH** `/api/workers/me` (Requires JWT)
+    *   **PATCH** `/api/workers/me/location` (Requires JWT)
+    *   **PATCH** `/api/workers/me/online` (Requires JWT)
+    *   **POST** `/api/workers/me/documents` (Requires JWT)
+    *   **GET** `/api/workers/me/documents` (Requires JWT)
+    *   **GET** `/api/workers/me/analytics` (Requires JWT)
+    *   **GET** `/api/workers/me/bookings` (Requires JWT)
+    *   **GET** `/api/workers/me/earnings` (Requires JWT)
 4.  **Jobs** (`/api/jobs`)
     *   **POST** `/api/jobs`
     *   **GET** `/api/jobs`
@@ -299,17 +301,17 @@ Tracks waves generated during job dispatch workflows.
     *   **GET** `/api/jobs/:jobId/requirements`
     *   **GET** `/api/jobs/:jobId/bookings`
 5.  **Dispatch** (`/api/dispatch`)
-    *   **GET** `/api/dispatch/incoming`
-    *   **POST** `/api/dispatch/:requirementId/accept`
-    *   **POST** `/api/dispatch/:requirementId/decline`
-    *   **GET** `/api/dispatch/:requirementId/waves`
+    *   **GET** `/api/dispatch/incoming` (Requires JWT)
+    *   **POST** `/api/dispatch/:requirementId/accept` (Requires JWT)
+    *   **POST** `/api/dispatch/:requirementId/decline` (Requires JWT)
+    *   **GET** `/api/dispatch/:requirementId/waves` (Requires JWT)
 6.  **Bookings** (`/api/bookings`)
-    *   **GET** `/api/bookings/:bookingId`
-    *   **POST** `/api/bookings/:bookingId/otp/verify`
-    *   **POST** `/api/bookings/:bookingId/complete`
-    *   **POST** `/api/bookings/:bookingId/confirm-complete`
-    *   **POST** `/api/bookings/:bookingId/cancel`
-    *   **GET** `/api/bookings/:bookingId/location`
+    *   **GET** `/api/bookings/:bookingId` (Requires JWT)
+    *   **POST** `/api/bookings/:bookingId/otp/verify` (Requires JWT)
+    *   **POST** `/api/bookings/:bookingId/complete` (Requires JWT)
+    *   **POST** `/api/bookings/:bookingId/confirm-complete` (Requires JWT)
+    *   **POST** `/api/bookings/:bookingId/cancel` (Requires JWT)
+    *   **GET** `/api/bookings/:bookingId/location` (Requires JWT)
 7.  **Payments** (`/api/payments`)
     *   **POST** `/api/payments/:bookingId/create-order`
     *   **POST** `/api/payments/webhook`
@@ -320,8 +322,8 @@ Tracks waves generated during job dispatch workflows.
     *   **GET** `/api/reviews/worker/:workerId`
     *   **GET** `/api/reviews/:bookingId`
 9.  **Chat** (`/api/chat`)
-    *   **GET** `/api/chat/:bookingId/messages`
-    *   **POST** `/api/chat/:bookingId/messages`
+    *   **GET** `/api/chat/:bookingId/messages` (Requires JWT)
+    *   **POST** `/api/chat/:bookingId/messages` (Requires JWT)
 10. **Admin** (`/api/admin`)
     *   **GET** `/api/admin/workers`
     *   **PATCH** `/api/admin/workers/:id/verify`

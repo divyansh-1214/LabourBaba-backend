@@ -1,16 +1,24 @@
 import prisma from '../config/prisma';
 import { CreateJobReq } from '../type/api_req.type';
 import { dispatchQueue } from '../config/bullmq';
+import { convertToGeography } from '../utils/locationUtils';
 
 export const jobService = {
   async createJob(payload: CreateJobReq) {
     const job = await prisma.$transaction(async (tx) => {
+      // Convert coordinates to geography if provided
+      let locationGeo: string | undefined;
+      if (payload.latitude !== undefined && payload.longitude !== undefined) {
+        locationGeo = convertToGeography(payload.longitude, payload.latitude);
+      }
+
       const job = await tx.job.create({
         data: {
           customer_id: payload.customer_id,
           latitude: payload.latitude,
           longitude: payload.longitude,
           location: payload.location,
+          location_geo: locationGeo,
           status: 'OPEN',
           dispatch_status: 'PENDING',
         },

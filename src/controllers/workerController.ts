@@ -40,6 +40,7 @@ export const loginWorker = async (req: Request, res: Response): Promise<void> =>
       },
       token,
     });
+    console.log(token)
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -82,10 +83,12 @@ export const updateLocation = async (req: Request, res: Response): Promise<void>
   try {
     const workerId = getWorkerId(req);
     if (!workerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    console.log(req.body)
     const payload: UpdateWorkerLocationReq = req.body;
     const location = await workerService.updateLocation(workerId, payload);
     res.status(200).json({ success: true, data: location });
   } catch (error: any) {
+    console.log(error.message)
     res.status(500).json({ success: false, message: error.message });
   }
 };
