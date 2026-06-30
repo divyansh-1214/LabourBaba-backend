@@ -30,7 +30,6 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ success: false, message: "Customer ID is required" });
       return;
     }
-
     const job = await jobService.createJob(payload);
     res.status(201).json({ success: true, data: job });
   } catch (error: any) {
@@ -40,8 +39,7 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
 
 export const getMyJobs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const customerId = String(req.params.customer_id);
-    console.log(customerId)
+    const customerId = String(req.query.customer_id);
     if (!customerId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const jobs = await jobService.getJobsByCustomer(customerId);
     res.status(200).json({ success: true, data: jobs });

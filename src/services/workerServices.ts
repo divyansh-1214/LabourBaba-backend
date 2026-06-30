@@ -48,7 +48,7 @@ export const workerService = {
         ST_MakePoint(${payload.longitude}, ${payload.latitude}),
         4326
       )::geography
-      WHERE id = ${worker_location.id};
+      WHERE id = ${worker_location.id}::uuid;
     `;
     return worker_location;
   },

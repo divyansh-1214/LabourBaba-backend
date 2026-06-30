@@ -1,28 +1,32 @@
 import prisma from '../config/prisma';
 import { CreateJobReq } from '../type/api_req.type';
-import { dispatchQueue } from '../config/bullmq';
-import { convertToGeography } from '../utils/locationUtils';
+import { dispatchQueue } from '../config/bullmq'
 
 export const jobService = {
   async createJob(payload: CreateJobReq) {
     const job = await prisma.$transaction(async (tx) => {
-      // Convert coordinates to geography if provided
-      let locationGeo: string | undefined;
-      if (payload.latitude !== undefined && payload.longitude !== undefined) {
-        locationGeo = convertToGeography(payload.longitude, payload.latitude);
-      }
-
       const job = await tx.job.create({
         data: {
           customer_id: payload.customer_id,
           latitude: payload.latitude,
           longitude: payload.longitude,
           location: payload.location,
-          location_geo: locationGeo,
           status: 'OPEN',
           dispatch_status: 'PENDING',
         },
       });
+      try {
+        await tx.$executeRaw`
+          UPDATE job
+          SET location_geo = ST_SetSRID(
+            ST_MakePoint(${payload.longitude}, ${payload.latitude}),
+            4326
+          )::geography
+          WHERE id = ${job.id}::uuid;
+        `;
+      } catch (err) {
+        console.error("UPDATE failed:", err);
+      }
 
       if (payload.requirements && payload.requirements.length > 0) {
         for (const req of payload.requirements) {
@@ -74,8 +78,8 @@ export const jobService = {
   async getJobDetail(jobId: string) {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
-      include: { 
-        job_requirement: { include: { job_dispatch: true } } 
+      include: {
+        job_requirement: { include: { job_dispatch: true } }
       }
     });
     if (!job) throw new Error("Job not found");
