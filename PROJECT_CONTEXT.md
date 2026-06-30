@@ -54,8 +54,14 @@ The project has the following directory layout under the source root (`src/`):
   - **`services/`**
     - `authServices.ts`: Logic for SMS OTP and verification tokens.
     - `customerServices.ts`: Abstracted business logic layer for customer actions.
-    - `job.services.ts`: Abstracts business logic for jobs (including coordinate-to-geography conversions and queuing BullMQ dispatch jobs).
-    - `workerServices.ts`: Handles worker updates, document storage registrations, booking history calculations, and worker location updates (with PostGIS integration).
+    - `job.services.ts`: Abstracts business logic for jobs including:
+      - Coordinate-to-geography conversions using `convertToGeography()`.
+      - Storing both latitude/longitude AND `location_geo` (WKT POINT) when creating jobs.
+      - Queuing BullMQ dispatch jobs for each requirement.
+    - `workerServices.ts`: Handles worker updates including:
+      - Worker location updates via `updateLocation()` which upserts `worker_location` records and updates `Worker.location_geo` field.
+      - Document storage registrations, booking history calculations.
+      - PostGIS geography integration for spatial queries.
     - `dispatchServices.ts`: Handles transaction logic for atomic booking creations upon job dispatch acceptances, immediate next wave triggers on decline, and job completeness checks.
     - `bookingServices.ts`: State management and OTP verification routines for active bookings.
     - `paymentServices.ts`: Webhook handlers and Razorpay mock integrations.
@@ -71,7 +77,10 @@ The project has the following directory layout under the source root (`src/`):
     - `api_res.types.ts`: Defines TypeScript interfaces/types for API responses.
   - **`utils/`**
     - `authUtils.ts`: Helper utilities for authentication, OTP generation, and hashing.
-    - `locationUtils.ts`: Helper utilities for PostGIS geography conversions (WKT formatting and GeoJSON parsing).
+    - `locationUtils.ts`: Helper utilities for PostGIS geography conversions with three core functions:
+      - `convertToGeography(lon, lat)`: Converts longitude/latitude to PostGIS WKT format `POINT(lon lat)` with validation (-90 to 90 for lat, -180 to 180 for lon).
+      - `convertToGeoJSON(lon, lat)`: Returns standard GeoJSON Point format `{ type: "Point", coordinates: [lon, lat] }`.
+      - `parseGeography(geography)`: Parses WKT POINT strings back to coordinates object.
   - `server.ts`: Entry point of the Express server with CORS configured to accept both `FRONT_END_URL` and `APP_URL` environments, Socket.IO setup, and background worker instantiation.
   - `test-prisma.ts`: A small testing script to verify Prisma integration.
 - **`prisma/`**
@@ -231,8 +240,10 @@ Documents uploaded by workers for verification.
 #### `worker_location`
 Real-time or last known coordinates of a worker.
 *   `id`: UUID, Primary Key
-*   `worker_id`: UUID (foreign key referencing `Worker`, required)
-*   `location_geo`: geography (optional)
+*   `worker_id`: UUID (foreign key referencing `Worker`, required, unique)
+*   `latitude`: Float (optional)
+*   `longitude`: Float (optional)
+*   `location`: String (optional)
 *   `updated_at`: DateTime (optional, default now())
 
 #### `dispatch_wave`
@@ -368,23 +379,118 @@ Tracks waves generated during job dispatch workflows.
 To support spatial queries (like finding workers near a job), the database leverages PostgreSQL's **PostGIS** extension with `geography` type columns (`location_geo`).
 
 ### 1. Coordinate Conversions (`src/utils/locationUtils.ts`)
-The service uses helper functions to convert standard longitude/latitude inputs:
-*   `convertToGeography(longitude, latitude)`: Formats coordinates as a Well-Known Text (WKT) string (e.g. `POINT(72.8777 19.0760)`).
-*   `convertToGeoJSON(longitude, latitude)`: Returns a standard GeoJSON representation.
-*   `parseGeography(geography)`: Reconstructs longitude and latitude values from WKT.
+The service uses three helper functions to manage coordinate conversions:
 
-### 2. Location Update & Creation Flows
-Because Prisma client doesn't natively cast custom/unsupported types, the geography field values are updated using two primary patterns:
-*   **Jobs (`src/services/job.services.ts`)**: Converts coordinates via `convertToGeography` and writes the WKT POINT string directly to the `location_geo` field in `prisma.job.create(...)`.
-*   **Workers (`src/services/workerServices.ts`)**: Updates coordinates via `workerService.updateLocation` by first creating a `worker_location` record, and then running a raw SQL `$executeRaw` query to assign the geography column based on the created record's `id`:
-    ```typescript
-    await prisma.$executeRaw`
-      UPDATE worker_location
-      SET location_geo = ST_SetSRID(
-        ST_MakePoint(${payload.longitude}, ${payload.latitude}),
-        4326
-      )::geography
-      WHERE id = ${worker_location.id};
-    `;
-    ```
-*   **Upserts (`src/controllers/worker_location.controller.ts`)**: Handles external upserts on the `worker_location` table and propagates updates directly to the corresponding `Worker.location_geo` field.
+*   **`convertToGeography(longitude, latitude)`**: 
+    - Validates coordinates (lat: -90 to 90, lon: -180 to 180)
+    - Returns PostGIS Well-Known Text (WKT) format: `POINT(longitude latitude)`
+    - Example: `convertToGeography(72.8777, 19.0760)` → `"POINT(72.8777 19.0760)"`
+    - Throws error on invalid coordinates
+
+*   **`convertToGeoJSON(longitude, latitude)`**: 
+    - Returns standard GeoJSON Point representation
+    - Format: `{ type: "Point", coordinates: [longitude, latitude] }`
+    - Used for API responses and external integrations
+
+*   **`parseGeography(geography)`**: 
+    - Parses WKT POINT strings back to coordinates
+    - Extracts longitude and latitude using regex pattern matching
+    - Returns: `{ longitude: number, latitude: number }`
+
+### 2. Location Update & Storage Patterns
+
+**Pattern A: Job Location Creation** (`src/services/job.services.ts`)
+- When creating a job with latitude/longitude:
+  1. Convert coordinates via `convertToGeography(lon, lat)`
+  2. Store WKT POINT string directly in `location_geo` field
+  3. Also store raw `latitude` and `longitude` fields for direct queries
+  4. Example:
+     ```typescript
+     const locationGeo = convertToGeography(payload.longitude, payload.latitude);
+     await tx.job.create({
+       data: {
+         customer_id: payload.customer_id,
+         latitude: payload.latitude,
+         longitude: payload.longitude,
+         location_geo: locationGeo,  // e.g., "POINT(72.8777 19.0760)"
+         status: 'OPEN'
+       }
+     });
+     ```
+
+**Pattern B: Worker Location Upsert** (`src/services/workerServices.ts`)
+- When updating worker location:
+  1. Convert coordinates via `convertToGeography(lon, lat)`
+  2. Upsert `worker_location` record with latitude/longitude/location fields
+  3. Update corresponding `Worker.location_geo` field with WKT POINT
+  4. Ensures both raw coordinates and geography are synchronized
+  5. Example:
+     ```typescript
+     const locationGeo = convertToGeography(payload.longitude, payload.latitude);
+     
+     // Upsert worker_location table
+     const workerLocation = await prisma.worker_location.upsert({
+       where: { worker_id: workerId },
+       update: { latitude, longitude, location, updated_at: new Date() },
+       create: { worker_id, latitude, longitude, location }
+     });
+     
+     // Update Worker.location_geo
+     await prisma.worker.update({
+       where: { id: workerId },
+       data: { location_geo: locationGeo }
+     });
+     ```
+
+**Pattern C: Worker Location Controller Upsert** (`src/controllers/worker_location.controller.ts`)
+- External API endpoint `/api/worker_location/add`:
+  1. Accepts `worker_id`, `latitude`, `longitude`, `location` in request body
+  2. Converts to geography using `convertToGeography()`
+  3. Upserts both `worker_location` and `Worker.location_geo` fields
+  4. Returns updated worker location record
+
+### 3. Database Indexes
+Two GIST indexes optimize spatial queries:
+- `idx_worker_location` on `Worker.location_geo`
+- `idx_job_location` on `job.location_geo`
+- Enable fast nearest-neighbor searches for dispatch workers
+
+---
+
+## 8. Recent Architecture Changes (Latest Updates)
+
+### A. Location Utilities Refactor (`src/utils/locationUtils.ts`)
+Created a comprehensive location utility module with three core functions:
+- **`convertToGeography(lon, lat)`**: Converts coordinates to PostGIS WKT `POINT(lon lat)` format with validation
+- **`convertToGeoJSON(lon, lat)`**: Returns GeoJSON Point format for API responses
+- **`parseGeography(geography)`**: Parses WKT strings back to coordinates
+
+### B. Worker Location Controller Enhancement (`src/controllers/worker_location.controller.ts`)
+- **Before**: Created `worker_location` with invalid `Number()` cast on geography
+- **After**: 
+  - Uses `upsert` pattern instead of `create` to handle updates
+  - Properly converts coordinates using `convertToGeography()`
+  - Updates both `worker_location` table AND `Worker.location_geo` field
+  - Includes all required fields: `latitude`, `longitude`, `location`, `updated_at`
+
+### C. Worker Services Fix (`src/services/workerServices.ts`)
+- **Method**: `updateLocation(workerId, payload)`
+- **Changes**:
+  - Fixed NaN error from `Number()` casting
+  - Implemented dual-write pattern: updates `worker_location` + `Worker.location_geo`
+  - Uses `upsert` for idempotent location updates
+  - Ensures coordinate validation via `convertToGeography()`
+
+### D. Job Services Enhancement (`src/services/job.services.ts`)
+- **Method**: `createJob(payload)`
+- **Changes**:
+  - Now converts coordinates to geography when creating jobs
+  - Stores WKT POINT string in `location_geo` field
+  - Maintains backward compatibility with raw `latitude`/`longitude` fields
+  - Improves spatial query performance via PostGIS indexes
+
+### E. API Endpoint Updates
+- **`POST /api/worker_location/add`**: 
+  - Request: `{ worker_id, latitude, longitude, location? }`
+  - Response: Updated `worker_location` record with proper validation
+  - Converts coordinates to PostGIS format transparently

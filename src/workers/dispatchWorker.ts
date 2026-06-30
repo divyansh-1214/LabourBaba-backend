@@ -195,3 +195,22 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 export default dispatchWorker;
+
+
+// job.services.ts
+//   dispatchQueue.add({ requirementId, jobId, waveNumber:1, offset:0 })
+//         ↓
+// dispatchWorker (this file)
+//   1. fetch requirement + job coords
+//   2. PostGIS → ranked workers nearby
+//   3. write dispatch_wave row
+//   4. write job_dispatch rows (all pending)
+//   5. FCM + Socket.IO → all wave workers
+//   6. timeoutQueue.add({ delay: 30s })
+//         ↓
+// Two things happen next (race):
+//   A. Worker accepts → dispatchServices.acceptDispatch()
+//      → booking created, slots filled, others cancelled
+//   B. 30s passes → timeoutWorker fires
+//      → marks pending as timeout
+//      → re-queues dispatchQueue with offset+waveSize
