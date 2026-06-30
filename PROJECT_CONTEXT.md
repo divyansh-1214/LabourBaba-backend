@@ -32,7 +32,7 @@ The project has the following directory layout under the source root (`src/`):
     - `adminController.ts`: Handles backend administration features (worker verifications, platform jobs, suspension).
     - `skillControllers.ts`: Handles retrieving and adding skill categories.
     - `workerController.ts`: Handles worker registration, profiles, online status, documents, earnings, and analytics.
-    - `worker_location.controller.ts`: Handles requests related to worker location.
+    - `worker_location.controller.ts`: Handles worker location add/update requests (upserts location and updates worker geography).
   - **`middlewares/`**
     - `authMiddleware.ts`: Custom middleware for verifying JWT tokens.
     - `validationMiddleware.ts`: Custom middleware using Zod schema to validate request bodies.
@@ -54,8 +54,8 @@ The project has the following directory layout under the source root (`src/`):
   - **`services/`**
     - `authServices.ts`: Logic for SMS OTP and verification tokens.
     - `customerServices.ts`: Abstracted business logic layer for customer actions.
-    - `job.services.ts`: Abstracts business logic for jobs, including queuing BullMQ dispatch jobs.
-    - `workerServices.ts`: Handles worker updates, document storage registrations, and booking history calculations.
+    - `job.services.ts`: Abstracts business logic for jobs (including coordinate-to-geography conversions and queuing BullMQ dispatch jobs).
+    - `workerServices.ts`: Handles worker updates, document storage registrations, booking history calculations, and worker location updates (with PostGIS integration).
     - `dispatchServices.ts`: Handles transaction logic for atomic booking creations upon job dispatch acceptances, immediate next wave triggers on decline, and job completeness checks.
     - `bookingServices.ts`: State management and OTP verification routines for active bookings.
     - `paymentServices.ts`: Webhook handlers and Razorpay mock integrations.
@@ -71,6 +71,7 @@ The project has the following directory layout under the source root (`src/`):
     - `api_res.types.ts`: Defines TypeScript interfaces/types for API responses.
   - **`utils/`**
     - `authUtils.ts`: Helper utilities for authentication, OTP generation, and hashing.
+    - `locationUtils.ts`: Helper utilities for PostGIS geography conversions (WKT formatting and GeoJSON parsing).
   - `server.ts`: Entry point of the Express server with CORS configured to accept both `FRONT_END_URL` and `APP_URL` environments, Socket.IO setup, and background worker instantiation.
   - `test-prisma.ts`: A small testing script to verify Prisma integration.
 - **`prisma/`**
@@ -360,3 +361,30 @@ Tracks waves generated during job dispatch workflows.
     npx tsx src/test-dispatch.ts
     ```
 
+---
+
+## 7. PostGIS Geography & Location Implementation
+
+To support spatial queries (like finding workers near a job), the database leverages PostgreSQL's **PostGIS** extension with `geography` type columns (`location_geo`).
+
+### 1. Coordinate Conversions (`src/utils/locationUtils.ts`)
+The service uses helper functions to convert standard longitude/latitude inputs:
+*   `convertToGeography(longitude, latitude)`: Formats coordinates as a Well-Known Text (WKT) string (e.g. `POINT(72.8777 19.0760)`).
+*   `convertToGeoJSON(longitude, latitude)`: Returns a standard GeoJSON representation.
+*   `parseGeography(geography)`: Reconstructs longitude and latitude values from WKT.
+
+### 2. Location Update & Creation Flows
+Because Prisma client doesn't natively cast custom/unsupported types, the geography field values are updated using two primary patterns:
+*   **Jobs (`src/services/job.services.ts`)**: Converts coordinates via `convertToGeography` and writes the WKT POINT string directly to the `location_geo` field in `prisma.job.create(...)`.
+*   **Workers (`src/services/workerServices.ts`)**: Updates coordinates via `workerService.updateLocation` by first creating a `worker_location` record, and then running a raw SQL `$executeRaw` query to assign the geography column based on the created record's `id`:
+    ```typescript
+    await prisma.$executeRaw`
+      UPDATE worker_location
+      SET location_geo = ST_SetSRID(
+        ST_MakePoint(${payload.longitude}, ${payload.latitude}),
+        4326
+      )::geography
+      WHERE id = ${worker_location.id};
+    `;
+    ```
+*   **Upserts (`src/controllers/worker_location.controller.ts`)**: Handles external upserts on the `worker_location` table and propagates updates directly to the corresponding `Worker.location_geo` field.
