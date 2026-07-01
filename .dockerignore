@@ -1,5 +1,7 @@
 node_modules
+dist
+.git
+.gitignore
 .env
-.agents
+npm-debug.log
 labourbaba-58a41-firebase-adminsdk-fbsvc-e72264934a.json
-dist/

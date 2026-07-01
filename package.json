@@ -5,6 +5,7 @@
   "main": "src/server.ts",
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
+    "build": "tsc",
     "test": "cross-env NODE_ENV=test jest"
   },
   "keywords": [],
