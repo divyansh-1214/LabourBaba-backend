@@ -53,6 +53,23 @@ io.on('connection', (socket) => {
     console.log(`[socket.io] Customer ${customerId} joined room customer:${customerId}`);
   });
 
+  socket.on('worker:location_update', async ({ workerId, lat, lng }) => {
+    // Write to Redis (fast cache)
+    // Then find active booking for this worker
+    // Emit to customer watching that booking
+    io.to(`customer:CUSTOMER_ID`).emit('worker:location', { lat, lng });
+  });
+
+  // ── Chat messages ───────────────────────────────────
+  // socket.on('chat:message', async ({ bookingId, content, senderId, role }) => {
+  //   // Save to DB
+  //   // Emit to other party
+  //   const target = role === 'worker'
+  //     ? `customer:${CUSTOMER_ID}`
+  //     : `worker:${WORKER_ID}`;
+  //   io.to(target).emit('chat:message', { content, senderId, sentAt: new Date() });
+  // });
+
   socket.on('disconnect', () => {
     console.log(`[socket.io] Client disconnected: ${socket.id}`);
   });
@@ -111,7 +128,7 @@ async function startServer() {
     } catch (e) {
       console.log('there is error in the connecting the db', e);
     }
-
+    // start the sockert server
     httpServer.listen(port, () => {
       console.log(`Server running on http://localhost:${port}`);
     });
