@@ -3,8 +3,9 @@ import prisma from '../config/prisma';
 import { redisConnectionOptions, timeoutQueue, dispatchQueue } from '../config/bullmq';
 import { sendFCMNotification } from '../services/fcm';
 import { io } from '../server';
+import { ta } from 'zod/v4/locales';
 
-const WAVE_TIMEOUT_MS = 30_000;
+const WAVE_TIMEOUT_MS = 300;
 
 interface DispatchJobData {
   requirementId: string;
@@ -25,7 +26,7 @@ const dispatchWorker = new Worker<DispatchJobData>(
   'dispatch',
   async (job: Job<DispatchJobData>) => {
     const { requirementId, jobId, waveNumber = 1, offset = 0 } = job.data;
-
+    console.log(requirementId)
     console.log(
       `[dispatchWorker] Processing requirement=${requirementId} wave=${waveNumber} offset=${offset}`,
     );
@@ -40,7 +41,9 @@ const dispatchWorker = new Worker<DispatchJobData>(
       console.warn(`[dispatchWorker] Requirement ${requirementId} not found — skipping`);
       return;
     }
-
+    const tag = `[dispatch][${req.skill_type}][wave${waveNumber}]`;
+    // console.log(tag)
+    console.log(`${tag} START — requirementId: ${requirementId}`);
     // Already filled — nothing to do
     if (req.status === 'filled') {
       console.log(`[dispatchWorker] Requirement ${requirementId} already filled — skipping`);
@@ -57,6 +60,27 @@ const dispatchWorker = new Worker<DispatchJobData>(
     }
 
     // 2. PostGIS query — nearby online workers matching skill, with offset for wave 2+
+    // const workers = await prisma.$queryRaw<NearbyWorker[]>`
+    //   SELECT w.id, w.name, w.device_token, w.worker_score::float,
+    //          ST_Distance(
+    //            w.location_geo,
+    //            ST_MakePoint(${req.job.longitude}, ${req.job.latitude})::geography
+    //          ) AS dist_m
+    //   FROM worker w
+    //   WHERE w.is_online = true
+    //     AND w.deleted_at IS NULL
+    //     AND w.skill_category_id = (
+    //           SELECT id FROM skill_category
+    //           WHERE name ILIKE ${req.skill_type ?? ''} LIMIT 1
+    //         )
+    //     AND ST_DWithin(
+    //           w.location_geo,
+    //           ST_MakePoint(${req.job.longitude}, ${req.job.latitude})::geography,
+    //           10000
+    //         )
+    //   ORDER BY w.worker_score DESC
+    //   LIMIT 30 OFFSET ${offset}
+    // `;
     const workers = await prisma.$queryRaw<NearbyWorker[]>`
       SELECT w.id, w.name, w.device_token, w.worker_score::float,
              ST_Distance(
@@ -70,17 +94,11 @@ const dispatchWorker = new Worker<DispatchJobData>(
               SELECT id FROM skill_category
               WHERE name ILIKE ${req.skill_type ?? ''} LIMIT 1
             )
-        AND ST_DWithin(
-              w.location_geo,
-              ST_MakePoint(${req.job.longitude}, ${req.job.latitude})::geography,
-              10000
-            )
       ORDER BY w.worker_score DESC
       LIMIT 30 OFFSET ${offset}
     `;
 
     const totalWorkersFound = workers.length;
-
     if (totalWorkersFound === 0) {
       console.log(`[dispatchWorker] No workers found for requirement ${requirementId} at offset ${offset}`);
       await prisma.job_requirement.update({
@@ -110,7 +128,7 @@ const dispatchWorker = new Worker<DispatchJobData>(
       },
     });
 
-    // 5. Write all job_dispatch rows for this wave
+    // // 5. Write all job_dispatch rows for this wave
     await prisma.job_dispatch.createMany({
       data: waveWorkers.map((w, i) => ({
         requirement_id: requirementId,
@@ -123,7 +141,7 @@ const dispatchWorker = new Worker<DispatchJobData>(
       })),
     });
 
-    // 6. Notify all wave workers concurrently (FCM + Socket.IO)
+    // // 6. Notify all wave workers concurrently (FCM + Socket.IO)
     await Promise.all(
       waveWorkers.map(async (w) => {
         // FCM push notification
@@ -145,7 +163,7 @@ const dispatchWorker = new Worker<DispatchJobData>(
       }),
     );
 
-    // 7. Queue wave timeout — fires in 30s
+    // // 7. Queue wave timeout — fires in 30s
     await timeoutQueue.add(
       'wave-timeout',
       {

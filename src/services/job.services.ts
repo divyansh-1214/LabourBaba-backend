@@ -49,15 +49,18 @@ export const jobService = {
       where: { job_id: job.id },
       select: { id: true },
     });
+    console.log("requirements", requirements)
 
     await Promise.all(
-      requirements.map((r) =>
-        dispatchQueue.add('dispatch-requirement', {
+      requirements.map((r) => {
+        console.log(r)
+        return dispatchQueue.add('dispatch-requirement', {
           requirementId: r.id,
           jobId: job.id,
           waveNumber: 1,
           offset: 0,
-        }),
+        })
+      }
       ),
     );
 
