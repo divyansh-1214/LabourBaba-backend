@@ -3,9 +3,7 @@ import prisma from '../config/prisma';
 import { redisConnectionOptions, timeoutQueue, dispatchQueue } from '../config/bullmq';
 import { sendFCMNotification } from '../services/fcm';
 import { io } from '../server';
-import { ta } from 'zod/v4/locales';
-
-const WAVE_TIMEOUT_MS = 300;
+const WAVE_TIMEOUT_MS = 30_000; // 30 seconds
 
 interface DispatchJobData {
   requirementId: string;
@@ -82,22 +80,25 @@ const dispatchWorker = new Worker<DispatchJobData>(
     //   LIMIT 30 OFFSET ${offset}
     // `;
     const workers = await prisma.$queryRaw<NearbyWorker[]>`
-      SELECT w.id, w.name, w.device_token, w.worker_score::float,
-             ST_Distance(
-               w.location_geo,
-               ST_MakePoint(${req.job.longitude}, ${req.job.latitude})::geography
-             ) AS dist_m
+      SELECT
+        w.id,
+        w.name,
+        w.device_token,
+        w.worker_score::float
       FROM worker w
       WHERE w.is_online = true
-        AND w.deleted_at IS NULL
         AND w.skill_category_id = (
-              SELECT id FROM skill_category
-              WHERE name ILIKE ${req.skill_type ?? ''} LIMIT 1
-            )
+          SELECT id
+          FROM skill_category
+          WHERE name ILIKE ${req.skill_type}
+          LIMIT 1
+        )
       ORDER BY w.worker_score DESC
-      LIMIT 30 OFFSET ${offset}
+      LIMIT 30 OFFSET ${offset};
     `;
 
+    console.log(workers);
+    console.log()
     const totalWorkersFound = workers.length;
     if (totalWorkersFound === 0) {
       console.log(`[dispatchWorker] No workers found for requirement ${requirementId} at offset ${offset}`);
@@ -184,6 +185,10 @@ const dispatchWorker = new Worker<DispatchJobData>(
   {
     connection: redisConnectionOptions,
     concurrency: 10,
+    settings: {
+      stalledInterval: 10_000,
+      maxStalledCount: 1,
+    },
   },
 );
 
@@ -199,6 +204,18 @@ dispatchWorker.on('stalled', (jobId) => {
 
 dispatchWorker.on('error', (err) => {
   console.error('[dispatchWorker] Worker error:', err.message);
+});
+
+dispatchWorker.on('ready', () => {
+  console.log('[dispatchWorker] ✅ Worker connected to Redis and ready to process jobs');
+});
+
+dispatchWorker.on('active', (job) => {
+  console.log(`[dispatchWorker] 🔄 Picked up job ${job?.id} — processing requirement ${job?.data?.requirementId}`);
+});
+
+dispatchWorker.on('completed', (job) => {
+  console.log(`[dispatchWorker] ✅ Job ${job?.id} completed for requirement ${job?.data?.requirementId}`);
 });
 
 // ── Graceful Shutdown ────────────────────────────────────────────────────────

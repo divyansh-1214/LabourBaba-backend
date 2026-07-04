@@ -37,6 +37,7 @@ export const createJob = async (req: Request, res: Response): Promise<void> => {
     const job = await jobService.createJob(payload);
     res.status(201).json({ success: true, data: job });
   } catch (error: any) {
+    console.log(error.message)
     res.status(500).json({ success: false, message: error.message });
   }
 };
