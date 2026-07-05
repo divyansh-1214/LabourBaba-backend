@@ -82,7 +82,7 @@ async function dispatchRequirementSimple(
   );
 
   workers = await findAvailableWorkers(job, req, EXPANDED_RADIUS_M);
-
+  console.log(workers);
   if (workers.length > 0) {
     await dispatchWave(job, req, workers, 1);
     // Schedule timeout — this is the last attempt
@@ -120,23 +120,29 @@ async function findAvailableWorkers(
            ) AS dist_m
     FROM worker w
     WHERE w.is_online   = true
-      AND w.deleted_at  IS NULL
-      AND w.skill_type  ILIKE ${req.skill_type ?? ''}
-      AND ST_DWithin(
-            w.location_geo,
-            ST_MakePoint(${job.longitude}, ${job.latitude})::geography,
-            ${radiusMeters}
-          )
-      -- Problem 6: exclude workers who already have an active booking
-      AND NOT EXISTS (
-            SELECT 1 FROM booking b
-            WHERE b.worker_id = w.id
-              AND b.status IN ('confirmed', 'in_progress')
-          )
     ORDER BY w.worker_score DESC
     LIMIT ${WORKERS_PER_WAVE}
   `;
 }
+
+// AND w.deleted_at  IS NULL
+// AND (
+//   w.skill_type ILIKE ${req.skill_type ?? ''}
+//   OR w.skill_category_id IN (
+//     SELECT id FROM skill_category WHERE name ILIKE ${req.skill_type ?? ''}
+//   )
+// )
+// AND ST_DWithin(
+//       w.location_geo,
+//       ST_MakePoint(${job.longitude}, ${job.latitude})::geography,
+//       ${radiusMeters}
+//     )
+// -- Problem 6: exclude workers who already have an active booking
+// AND NOT EXISTS (
+//       SELECT 1 FROM booking b
+//       WHERE b.worker_id = w.id
+//         AND b.status IN ('confirmed', 'in_progress')
+//     )
 
 // ── Dispatch a single wave ──────────────────────────────────────────────────
 
